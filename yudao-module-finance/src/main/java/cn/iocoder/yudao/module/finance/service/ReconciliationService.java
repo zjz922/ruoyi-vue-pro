@@ -1,9 +1,10 @@
 package cn.iocoder.yudao.module.finance.service;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.module.finance.controller.admin.reconciliation.vo.ReconciliationPageReqVO;
+import cn.iocoder.yudao.module.finance.controller.admin.reconciliation.vo.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,6 +13,8 @@ import java.util.Map;
  * @author 闪电账PRO
  */
 public interface ReconciliationService {
+
+    // ========== 原有接口 ==========
 
     /**
      * 执行自动对账
@@ -69,4 +72,110 @@ public interface ReconciliationService {
      */
     Map<String, Object> getReconciliationDetail(Long shopId, String platform, LocalDate reconciliationDate);
 
+    // ========== 新增接口 - 勾稽仪表盘 ==========
+
+    /**
+     * 获取勾稽仪表盘数据
+     *
+     * @param shopId 店铺ID
+     * @param month 月份
+     * @return 仪表盘数据
+     */
+    ReconciliationDashboardRespVO getDashboard(String shopId, String month);
+
+    /**
+     * 获取订单勾稽列表
+     *
+     * @param shopId 店铺ID
+     * @param status 状态
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param pageNum 页码
+     * @param pageSize 每页数量
+     * @return 订单勾稽列表
+     */
+    PageResult<ReconciliationOrderVO> getOrders(String shopId, String status, String startDate, 
+            String endDate, Integer pageNum, Integer pageSize);
+
+    /**
+     * 获取成本勾稽列表
+     *
+     * @param shopId 店铺ID
+     * @param status 状态
+     * @param pageNum 页码
+     * @param pageSize 每页数量
+     * @return 成本勾稽列表
+     */
+    PageResult<ReconciliationCostVO> getCosts(String shopId, String status, Integer pageNum, Integer pageSize);
+
+    /**
+     * 获取库存勾稽列表
+     *
+     * @param shopId 店铺ID
+     * @param status 状态
+     * @param pageNum 页码
+     * @param pageSize 每页数量
+     * @return 库存勾稽列表
+     */
+    PageResult<ReconciliationInventoryVO> getInventory(String shopId, String status, Integer pageNum, Integer pageSize);
+
+    /**
+     * 获取推广费用勾稽列表
+     *
+     * @param shopId 店铺ID
+     * @param status 状态
+     * @param pageNum 页码
+     * @param pageSize 每页数量
+     * @return 推广费用勾稽列表
+     */
+    PageResult<ReconciliationPromotionVO> getPromotion(String shopId, String status, Integer pageNum, Integer pageSize);
+
+    /**
+     * 获取日度勾稽统计
+     *
+     * @param shopId 店铺ID
+     * @param month 月份
+     * @return 日度统计列表
+     */
+    List<ReconciliationDailyStatsVO> getDailyStats(String shopId, String month);
+
+    /**
+     * 执行勾稽匹配
+     *
+     * @param reqVO 匹配请求
+     * @return 匹配结果
+     */
+    Map<String, Object> executeMatch(ReconciliationMatchReqVO reqVO);
+
+    /**
+     * 处理勾稽差异
+     *
+     * @param reqVO 处理请求
+     * @return 处理结果
+     */
+    Map<String, Object> resolveDifference(ReconciliationResolveReqVO reqVO);
+
+    /**
+     * 获取勾稽规则
+     *
+     * @param shopId 店铺ID
+     * @return 规则列表
+     */
+    List<ReconciliationRuleVO> getRules(String shopId);
+
+    /**
+     * 保存勾稽规则
+     *
+     * @param reqVO 规则
+     * @return 保存结果
+     */
+    Map<String, Object> saveRule(ReconciliationRuleVO reqVO);
+
+    /**
+     * 导出勾稽报表
+     *
+     * @param reqVO 导出请求
+     * @return 导出结果
+     */
+    Map<String, Object> exportReconciliation(ReconciliationExportReqVO reqVO);
 }
