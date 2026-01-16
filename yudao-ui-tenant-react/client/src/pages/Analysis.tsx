@@ -20,6 +20,8 @@ import {
   Calculator,
   AlertTriangle,
   CheckCircle2,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -44,9 +46,14 @@ import {
   Scatter,
   ZAxis,
 } from "recharts";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { useAnalysisRoi, useAnalysisExport } from "@/hooks/useLedger";
+import { 
+  useAnalysisRoi, 
+  useAnalysisBreakEven, 
+  useAnalysisProfitContribution,
+  useAnalysisExport 
+} from "@/hooks/useLedger";
 import { useShopSwitcher } from "@/components/ShopSwitcher";
 import {
   Dialog,
@@ -64,77 +71,59 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
 
-// ============ Mock Data ============
+// ============ 类型定义 ============
 
-// ROI总览
-const roiOverview = {
-  overallROI: 285.6,
-  adROI: 3.2,
-  productROI: 4.8,
-  channelROI: 2.9,
-  targetROI: 3.0,
-};
+interface ROIOverview {
+  overallROI: number;
+  adROI: number;
+  productROI: number;
+  channelROI: number;
+  targetROI: number;
+}
 
-// 各渠道ROI
-const channelROI = [
-  { channel: "抖音直播", investment: 125000, revenue: 456000, roi: 3.65, trend: "up" },
-  { channel: "短视频带货", investment: 85000, revenue: 312000, roi: 3.67, trend: "up" },
-  { channel: "千川投放", investment: 156000, revenue: 485000, roi: 3.11, trend: "down" },
-  { channel: "达人合作", investment: 68000, revenue: 198000, roi: 2.91, trend: "down" },
-  { channel: "自然流量", investment: 0, revenue: 285000, roi: 999, trend: "up" },
-];
+interface ChannelROIItem {
+  channel: string;
+  investment: number;
+  revenue: number;
+  roi: number;
+  trend: "up" | "down";
+}
 
-// ROI趋势
-const roiTrend = [
-  { date: "01-05", roi: 2.85, target: 3.0 },
-  { date: "01-06", roi: 3.12, target: 3.0 },
-  { date: "01-07", roi: 2.95, target: 3.0 },
-  { date: "01-08", roi: 3.25, target: 3.0 },
-  { date: "01-09", roi: 3.08, target: 3.0 },
-  { date: "01-10", roi: 3.42, target: 3.0 },
-  { date: "01-11", roi: 3.20, target: 3.0 },
-];
+interface ROITrendItem {
+  date: string;
+  roi: number;
+  target: number;
+}
 
-// 盈亏平衡分析
-const breakEvenData = {
-  fixedCost: 125000, // 固定成本
-  variableCostRate: 0.65, // 变动成本率
-  sellingPrice: 100, // 平均售价
-  breakEvenPoint: 357143, // 盈亏平衡点销售额
-  currentSales: 485620, // 当前销售额
-  safetyMargin: 26.5, // 安全边际率
-};
+interface BreakEvenData {
+  fixedCost: number;
+  variableCostRate: number;
+  sellingPrice: number;
+  breakEvenPoint: number;
+  currentSales: number;
+  safetyMargin: number;
+}
 
-// 本量利分析图表数据
-const cvpChartData = [
-  { sales: 0, totalCost: 125000, revenue: 0 },
-  { sales: 100000, totalCost: 190000, revenue: 100000 },
-  { sales: 200000, totalCost: 255000, revenue: 200000 },
-  { sales: 300000, totalCost: 320000, revenue: 300000 },
-  { sales: 357143, totalCost: 357143, revenue: 357143 },
-  { sales: 400000, totalCost: 385000, revenue: 400000 },
-  { sales: 500000, totalCost: 450000, revenue: 500000 },
-  { sales: 600000, totalCost: 515000, revenue: 600000 },
-];
+interface CVPChartItem {
+  sales: number;
+  totalCost: number;
+  revenue: number;
+}
 
-// 产品利润贡献
-const productContribution = [
-  { product: "连衣裙系列", revenue: 185600, cost: 112500, profit: 73100, margin: 39.4 },
-  { product: "T恤系列", revenue: 125800, cost: 82600, profit: 43200, margin: 34.3 },
-  { product: "牛仔裤系列", revenue: 98500, cost: 62400, profit: 36100, margin: 36.6 },
-  { product: "运动鞋系列", revenue: 75720, cost: 52800, profit: 22920, margin: 30.3 },
-];
+interface ProductContributionItem {
+  product: string;
+  revenue: number;
+  cost: number;
+  profit: number;
+  margin: number;
+}
 
-// 利润结构
-const profitStructure = [
-  { name: "毛利润", value: 285640, percent: 100 },
-  { name: "销售费用", value: -85640, percent: -30 },
-  { name: "管理费用", value: -42500, percent: -14.9 },
-  { name: "推广费用", value: -68500, percent: -24 },
-  { name: "净利润", value: 89000, percent: 31.1 },
-];
+interface ProfitStructureItem {
+  name: string;
+  value: number;
+  percent: number;
+}
 
 // ============ Helper Functions ============
 function formatCurrency(value: number): string {
@@ -142,6 +131,27 @@ function formatCurrency(value: number): string {
     return `¥${(value / 10000).toFixed(2)}万`;
   }
   return `¥${value.toLocaleString()}`;
+}
+
+// ============ 空状态组件 ============
+function EmptyState({ message, icon: Icon = AlertCircle }: { message: string; icon?: React.ElementType }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+      <Icon className="h-12 w-12 mb-4 opacity-50" />
+      <p className="text-sm">{message}</p>
+      <p className="text-xs mt-2">请确认Java后端服务已启动</p>
+    </div>
+  );
+}
+
+// ============ 加载状态组件 ============
+function LoadingState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-12">
+      <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+      <p className="text-sm text-muted-foreground">正在加载数据...</p>
+    </div>
+  );
 }
 
 // ============ Components ============
@@ -195,7 +205,7 @@ function ROICard({
 }
 
 // 渠道ROI行
-function ChannelROIRow({ channel }: { channel: typeof channelROI[0] }) {
+function ChannelROIRow({ channel }: { channel: ChannelROIItem }) {
   const isGoodROI = channel.roi >= 3.0;
   return (
     <div className="flex items-center justify-between py-4 border-b border-border/50 last:border-0">
@@ -250,10 +260,135 @@ export default function Analysis() {
   const { currentShopId } = useShopSwitcher();
   
   // 获取经营分析数据
-  const { data: analysisData, isLoading: isLoadingAnalysis, refetch: refetchAnalysis } = useAnalysisRoi();
+  const { 
+    data: roiData, 
+    isLoading: isLoadingRoi, 
+    error: roiError,
+    refetch: refetchRoi 
+  } = useAnalysisRoi({ dateRange });
+  
+  const { 
+    data: breakEvenData, 
+    isLoading: isLoadingBreakEven 
+  } = useAnalysisBreakEven();
+  
+  const { 
+    data: contributionData, 
+    isLoading: isLoadingContribution 
+  } = useAnalysisProfitContribution();
   
   // 导出分析报告
   const exportMutation = useAnalysisExport();
+
+  // 定义API响应类型
+  type RoiDataType = {
+    overview?: ROIOverview;
+    channelROI?: ChannelROIItem[];
+    roiTrend?: ROITrendItem[];
+  };
+
+  type BreakEvenDataType = {
+    breakEven?: BreakEvenData;
+    cvpChart?: CVPChartItem[];
+  };
+
+  type ContributionDataType = {
+    productContribution?: ProductContributionItem[];
+    profitStructure?: ProfitStructureItem[];
+    summary?: {
+      grossProfit: number;
+      netProfit: number;
+      netProfitRate: number;
+      expenseRate: number;
+    };
+  };
+
+  // 类型断言
+  const typedRoiData = roiData as RoiDataType | undefined;
+  const typedBreakEvenData = breakEvenData as BreakEvenDataType | undefined;
+  const typedContributionData = contributionData as ContributionDataType | undefined;
+
+  // 从API响应中提取数据
+  const roiOverview = useMemo<ROIOverview>(() => {
+    if (typedRoiData?.overview) {
+      return typedRoiData.overview;
+    }
+    return {
+      overallROI: 0,
+      adROI: 0,
+      productROI: 0,
+      channelROI: 0,
+      targetROI: 3.0,
+    };
+  }, [typedRoiData]);
+
+  const channelROI = useMemo<ChannelROIItem[]>(() => {
+    if (typedRoiData?.channelROI) {
+      return typedRoiData.channelROI;
+    }
+    return [];
+  }, [typedRoiData]);
+
+  const roiTrend = useMemo<ROITrendItem[]>(() => {
+    if (typedRoiData?.roiTrend) {
+      return typedRoiData.roiTrend;
+    }
+    return [];
+  }, [typedRoiData]);
+
+  const breakEvenInfo = useMemo<BreakEvenData>(() => {
+    if (typedBreakEvenData?.breakEven) {
+      return typedBreakEvenData.breakEven;
+    }
+    return {
+      fixedCost: 0,
+      variableCostRate: 0,
+      sellingPrice: 0,
+      breakEvenPoint: 0,
+      currentSales: 0,
+      safetyMargin: 0,
+    };
+  }, [typedBreakEvenData]);
+
+  const cvpChartData = useMemo<CVPChartItem[]>(() => {
+    if (typedBreakEvenData?.cvpChart) {
+      return typedBreakEvenData.cvpChart;
+    }
+    return [];
+  }, [typedBreakEvenData]);
+
+  const productContribution = useMemo<ProductContributionItem[]>(() => {
+    if (typedContributionData?.productContribution) {
+      return typedContributionData.productContribution;
+    }
+    return [];
+  }, [typedContributionData]);
+
+  const profitStructure = useMemo<ProfitStructureItem[]>(() => {
+    if (typedContributionData?.profitStructure) {
+      return typedContributionData.profitStructure;
+    }
+    return [];
+  }, [typedContributionData]);
+
+  const profitSummary = useMemo(() => {
+    if (typedContributionData?.summary) {
+      return typedContributionData.summary;
+    }
+    return {
+      grossProfit: 0,
+      netProfit: 0,
+      netProfitRate: 0,
+      expenseRate: 0,
+    };
+  }, [typedContributionData]);
+
+  // 检查是否有数据
+  const hasRoiData = roiOverview.overallROI > 0 || channelROI.length > 0;
+  const hasBreakEvenData = breakEvenInfo.breakEvenPoint > 0;
+  const hasContributionData = productContribution.length > 0 || profitStructure.length > 0;
+
+  const isLoading = isLoadingRoi || isLoadingBreakEven || isLoadingContribution;
   
   // 处理导出分析
   const handleExport = useCallback(async () => {
@@ -277,8 +412,14 @@ export default function Analysis() {
   const handleApplyFilter = useCallback(() => {
     setFilterDialogOpen(false);
     toast.success("筛选条件已应用");
-    refetchAnalysis();
-  }, [refetchAnalysis]);
+    refetchRoi();
+  }, [refetchRoi]);
+
+  // 处理刷新
+  const handleRefresh = useCallback(() => {
+    refetchRoi();
+    toast.success("数据已刷新");
+  }, [refetchRoi]);
   
   return (
     <AppLayout>
@@ -312,6 +453,15 @@ export default function Analysis() {
             <Filter className="h-4 w-4 mr-2" />
             筛选
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isLoading}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
+            刷新
+          </Button>
           <Button 
             size="sm"
             onClick={handleExport}
@@ -327,328 +477,390 @@ export default function Analysis() {
         </div>
       </div>
 
-      {/* ROI总览卡片 */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <ROICard 
-          title="综合ROI" 
-          value={roiOverview.overallROI}
-          unit="%"
-          icon={TrendingUp}
-          variant="success"
-        />
-        <ROICard 
-          title="广告ROI" 
-          value={roiOverview.adROI}
-          target={roiOverview.targetROI}
-          icon={Target}
-          variant="success"
-        />
-        <ROICard 
-          title="产品ROI" 
-          value={roiOverview.productROI}
-          target={roiOverview.targetROI}
-          icon={BarChart3}
-          variant="success"
-        />
-        <ROICard 
-          title="渠道ROI" 
-          value={roiOverview.channelROI}
-          target={roiOverview.targetROI}
-          icon={Activity}
-          variant="warning"
-        />
-        <ROICard 
-          title="安全边际率" 
-          value={breakEvenData.safetyMargin}
-          unit="%"
-          icon={Scale}
-          variant="success"
-        />
-      </div>
+      {/* 加载状态 */}
+      {isLoading && <LoadingState />}
 
-      {/* ROI分析和盈亏平衡 Tabs */}
-      <Tabs defaultValue="roi" className="space-y-4">
-        <TabsList className="bg-muted/50">
-          <TabsTrigger value="roi" className="flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            ROI分析
-          </TabsTrigger>
-          <TabsTrigger value="breakeven" className="flex items-center gap-2">
-            <Scale className="h-4 w-4" />
-            盈亏平衡
-          </TabsTrigger>
-          <TabsTrigger value="contribution" className="flex items-center gap-2">
-            <PieChartIcon className="h-4 w-4" />
-            利润贡献
-          </TabsTrigger>
-        </TabsList>
+      {/* 错误状态 */}
+      {roiError && !isLoading && (
+        <EmptyState message="数据加载失败，请检查网络连接" icon={AlertCircle} />
+      )}
 
-        {/* ROI分析 */}
-        <TabsContent value="roi" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* ROI趋势 */}
-            <div className="data-card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">ROI趋势</h3>
-                <Badge variant="outline">近7天</Badge>
-              </div>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={roiTrend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.01 250)" />
-                    <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="oklch(0.5 0.02 250)" />
-                    <YAxis tick={{ fontSize: 12 }} stroke="oklch(0.5 0.02 250)" domain={[2, 4]} />
-                    <Tooltip 
-                      formatter={(value: number, name: string) => [value.toFixed(2), name === "roi" ? "实际ROI" : "目标ROI"]}
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid oklch(0.9 0.01 250)',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                      }}
-                    />
-                    <ReferenceLine y={3} stroke="oklch(0.7 0.15 70)" strokeDasharray="5 5" label="目标" />
-                    <Area 
-                      type="monotone" 
-                      dataKey="roi" 
-                      name="实际ROI"
-                      stroke="oklch(0.5 0.18 250)" 
-                      fill="oklch(0.5 0.18 250 / 0.2)" 
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
+      {/* 有数据时显示内容 */}
+      {!isLoading && !roiError && (
+        <>
+          {/* ROI总览卡片 */}
+          {hasRoiData ? (
+            <div className="grid grid-cols-5 gap-4">
+              <ROICard 
+                title="综合ROI" 
+                value={roiOverview.overallROI} 
+                unit="%" 
+                icon={Activity}
+                variant="success"
+              />
+              <ROICard 
+                title="广告ROI" 
+                value={roiOverview.adROI} 
+                target={roiOverview.targetROI}
+                icon={Target}
+                variant={roiOverview.adROI >= roiOverview.targetROI ? "success" : "warning"}
+              />
+              <ROICard 
+                title="产品ROI" 
+                value={roiOverview.productROI} 
+                icon={BarChart3}
+                variant="default"
+              />
+              <ROICard 
+                title="渠道ROI" 
+                value={roiOverview.channelROI} 
+                icon={PieChartIcon}
+                variant="default"
+              />
+              <ROICard 
+                title="目标ROI" 
+                value={roiOverview.targetROI} 
+                icon={Scale}
+                variant="default"
+              />
             </div>
-
-            {/* 渠道ROI */}
+          ) : (
             <div className="data-card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">渠道ROI排行</h3>
-                <Badge className="bg-success/10 text-success">
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                  3/5 达标
-                </Badge>
-              </div>
-              <div className="divide-y divide-border/50">
-                {channelROI.map((channel, index) => (
-                  <ChannelROIRow key={index} channel={channel} />
-                ))}
-              </div>
+              <EmptyState message="暂无ROI数据" icon={Target} />
             </div>
-          </div>
-        </TabsContent>
+          )}
 
-        {/* 盈亏平衡 */}
-        <TabsContent value="breakeven" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* 盈亏平衡指标 */}
-            <div className="data-card">
-              <h3 className="font-semibold mb-4">盈亏平衡分析</h3>
-              <div className="space-y-4">
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">固定成本</p>
-                  <p className="text-xl font-bold mt-1">{formatCurrency(breakEvenData.fixedCost)}</p>
-                </div>
-                <div className="p-4 bg-muted/30 rounded-lg">
-                  <p className="text-sm text-muted-foreground">变动成本率</p>
-                  <p className="text-xl font-bold mt-1">{(breakEvenData.variableCostRate * 100).toFixed(0)}%</p>
-                </div>
-                <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-                  <p className="text-sm text-muted-foreground">盈亏平衡点</p>
-                  <p className="text-xl font-bold text-primary mt-1">{formatCurrency(breakEvenData.breakEvenPoint)}</p>
-                </div>
-                <div className="p-4 bg-success/10 rounded-lg border border-success/20">
-                  <p className="text-sm text-muted-foreground">当前销售额</p>
-                  <p className="text-xl font-bold text-success mt-1">{formatCurrency(breakEvenData.currentSales)}</p>
-                  <p className="text-xs text-success mt-1">
-                    超出盈亏平衡点 {formatCurrency(breakEvenData.currentSales - breakEvenData.breakEvenPoint)}
-                  </p>
-                </div>
-              </div>
-            </div>
+          <Tabs defaultValue="roi" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+              <TabsTrigger value="roi" className="gap-2">
+                <Target className="h-4 w-4" />
+                ROI分析
+              </TabsTrigger>
+              <TabsTrigger value="breakeven" className="gap-2">
+                <Scale className="h-4 w-4" />
+                盈亏平衡
+              </TabsTrigger>
+              <TabsTrigger value="contribution" className="gap-2">
+                <PieChartIcon className="h-4 w-4" />
+                利润贡献
+              </TabsTrigger>
+            </TabsList>
 
-            {/* 本量利分析图 */}
-            <div className="data-card lg:col-span-2">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">本量利分析图 (CVP)</h3>
-                <Badge variant="outline">成本-销量-利润关系</Badge>
-              </div>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={cvpChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.01 250)" />
-                    <XAxis 
-                      dataKey="sales" 
-                      tick={{ fontSize: 12 }} 
-                      stroke="oklch(0.5 0.02 250)" 
-                      tickFormatter={(v) => `${(v/10000).toFixed(0)}万`}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 12 }} 
-                      stroke="oklch(0.5 0.02 250)" 
-                      tickFormatter={(v) => `${(v/10000).toFixed(0)}万`}
-                    />
-                    <Tooltip 
-                      formatter={(value: number) => formatCurrency(value)}
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
-                        border: '1px solid oklch(0.9 0.01 250)',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                      }}
-                    />
-                    <Legend />
-                    <ReferenceLine 
-                      x={357143} 
-                      stroke="oklch(0.7 0.15 70)" 
-                      strokeDasharray="5 5" 
-                      label={{ value: "盈亏平衡点", position: "top" }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      name="销售收入"
-                      stroke="oklch(0.55 0.18 150)" 
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="totalCost" 
-                      name="总成本"
-                      stroke="oklch(0.55 0.2 25)" 
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border">
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">边际贡献率</p>
-                  <p className="text-lg font-bold text-primary">{((1 - breakEvenData.variableCostRate) * 100).toFixed(0)}%</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">安全边际</p>
-                  <p className="text-lg font-bold text-success">{formatCurrency(breakEvenData.currentSales - breakEvenData.breakEvenPoint)}</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">安全边际率</p>
-                  <p className="text-lg font-bold text-success">{breakEvenData.safetyMargin}%</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* 利润贡献 */}
-        <TabsContent value="contribution" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 产品利润贡献 */}
-            <div className="data-card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">产品利润贡献</h3>
-                <Badge variant="outline">本月</Badge>
-              </div>
-              <div className="space-y-4">
-                {productContribution.map((product, index) => (
-                  <div key={index} className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium">{product.product}</span>
-                      <Badge className={cn(
-                        product.margin >= 35 ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
-                      )}>
-                        毛利率 {product.margin}%
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">收入</p>
-                        <p className="font-semibold">{formatCurrency(product.revenue)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">成本</p>
-                        <p className="font-semibold">{formatCurrency(product.cost)}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">利润</p>
-                        <p className="font-semibold text-success">{formatCurrency(product.profit)}</p>
-                      </div>
-                    </div>
-                    {/* 进度条 */}
-                    <div className="mt-3">
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-primary rounded-full"
-                          style={{ width: `${(product.profit / 73100) * 100}%` }}
-                        />
-                      </div>
-                    </div>
+            {/* ROI分析 */}
+            <TabsContent value="roi" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 渠道ROI明细 */}
+                <div className="data-card">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold">渠道ROI明细</h3>
+                    <Badge variant="outline">按ROI排序</Badge>
                   </div>
-                ))}
-              </div>
-            </div>
+                  {channelROI.length > 0 ? (
+                    <div className="space-y-1">
+                      {channelROI.map((channel, index) => (
+                        <ChannelROIRow key={index} channel={channel} />
+                      ))}
+                    </div>
+                  ) : (
+                    <EmptyState message="暂无渠道ROI数据" icon={Target} />
+                  )}
+                </div>
 
-            {/* 利润结构瀑布图 */}
-            <div className="data-card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">利润结构分析</h3>
-                <Badge variant="outline">瀑布图</Badge>
+                {/* ROI趋势 */}
+                <div className="data-card">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold">ROI趋势</h3>
+                    <Badge variant="outline">近7天</Badge>
+                  </div>
+                  {roiTrend.length > 0 ? (
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={roiTrend}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.01 250)" />
+                          <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="oklch(0.5 0.02 250)" />
+                          <YAxis tick={{ fontSize: 12 }} stroke="oklch(0.5 0.02 250)" domain={[2, 4]} />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'white', 
+                              border: '1px solid oklch(0.9 0.01 250)',
+                              borderRadius: '8px',
+                            }}
+                          />
+                          <Legend />
+                          <ReferenceLine y={3.0} stroke="oklch(0.7 0.15 70)" strokeDasharray="5 5" label="目标" />
+                          <Area 
+                            type="monotone" 
+                            dataKey="roi" 
+                            name="实际ROI"
+                            fill="oklch(0.55 0.18 150 / 0.2)" 
+                            stroke="oklch(0.55 0.18 150)"
+                            strokeWidth={2}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="target" 
+                            name="目标ROI"
+                            stroke="oklch(0.7 0.15 70)" 
+                            strokeDasharray="5 5"
+                            dot={false}
+                          />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : (
+                    <EmptyState message="暂无ROI趋势数据" icon={LineChartIcon} />
+                  )}
+                </div>
               </div>
-              <div className="space-y-3">
-                {profitStructure.map((item, index) => (
-                  <div key={index} className="flex items-center gap-4">
-                    <div className="w-24 text-sm text-right">{item.name}</div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className={cn(
-                            "h-8 rounded flex items-center justify-end px-2 text-sm font-medium text-white",
-                            item.value >= 0 ? "bg-success" : "bg-danger"
-                          )}
-                          style={{ 
-                            width: `${Math.abs(item.percent)}%`,
-                            marginLeft: item.value < 0 ? `${100 - Math.abs(item.percent)}%` : '0'
-                          }}
-                        >
-                          {formatCurrency(Math.abs(item.value))}
+            </TabsContent>
+
+            {/* 盈亏平衡 */}
+            <TabsContent value="breakeven" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 盈亏平衡指标 */}
+                <div className="data-card">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold">盈亏平衡分析</h3>
+                    <Badge variant="outline">本月</Badge>
+                  </div>
+                  {hasBreakEvenData ? (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 bg-muted/30 rounded-lg">
+                          <p className="text-sm text-muted-foreground">固定成本</p>
+                          <p className="text-xl font-bold">{formatCurrency(breakEvenInfo.fixedCost)}</p>
+                        </div>
+                        <div className="p-4 bg-muted/30 rounded-lg">
+                          <p className="text-sm text-muted-foreground">变动成本率</p>
+                          <p className="text-xl font-bold">{(breakEvenInfo.variableCostRate * 100).toFixed(0)}%</p>
+                        </div>
+                      </div>
+                      <div className="p-4 bg-warning/10 rounded-lg border border-warning/20">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">盈亏平衡点</p>
+                            <p className="text-2xl font-bold text-warning">{formatCurrency(breakEvenInfo.breakEvenPoint)}</p>
+                          </div>
+                          <Scale className="h-8 w-8 text-warning/50" />
+                        </div>
+                      </div>
+                      <div className="p-4 bg-success/10 rounded-lg border border-success/20">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-muted-foreground">当前销售额</p>
+                            <p className="text-2xl font-bold text-success">{formatCurrency(breakEvenInfo.currentSales)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">安全边际率</p>
+                            <p className="text-xl font-bold text-success">{breakEvenInfo.safetyMargin}%</p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                    <div className={cn(
-                      "w-16 text-sm text-right font-medium",
-                      item.value >= 0 ? "text-success" : "text-danger"
-                    )}>
-                      {item.percent >= 0 ? "+" : ""}{item.percent}%
+                  ) : (
+                    <EmptyState message="暂无盈亏平衡数据" icon={Scale} />
+                  )}
+                </div>
+
+                {/* 本量利图 */}
+                <div className="data-card">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold">本量利分析图</h3>
+                    <Badge variant="outline">CVP</Badge>
+                  </div>
+                  {cvpChartData.length > 0 ? (
+                    <>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <ComposedChart data={cvpChartData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.01 250)" />
+                            <XAxis 
+                              dataKey="sales" 
+                              tick={{ fontSize: 12 }} 
+                              stroke="oklch(0.5 0.02 250)"
+                              tickFormatter={(v) => `${(v/10000).toFixed(0)}万`}
+                            />
+                            <YAxis 
+                              tick={{ fontSize: 12 }} 
+                              stroke="oklch(0.5 0.02 250)"
+                              tickFormatter={(v) => `${(v/10000).toFixed(0)}万`}
+                            />
+                            <Tooltip 
+                              formatter={(value: number) => formatCurrency(value)}
+                              contentStyle={{ 
+                                backgroundColor: 'white', 
+                                border: '1px solid oklch(0.9 0.01 250)',
+                                borderRadius: '8px',
+                              }}
+                            />
+                            <Legend />
+                            <ReferenceLine 
+                              x={breakEvenInfo.breakEvenPoint} 
+                              stroke="oklch(0.7 0.15 70)" 
+                              strokeDasharray="5 5" 
+                              label={{ value: "盈亏平衡点", position: "top" }}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="revenue" 
+                              name="销售收入"
+                              stroke="oklch(0.55 0.18 150)" 
+                              strokeWidth={2}
+                              dot={false}
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="totalCost" 
+                              name="总成本"
+                              stroke="oklch(0.55 0.2 25)" 
+                              strokeWidth={2}
+                              dot={false}
+                            />
+                          </ComposedChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border">
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">边际贡献率</p>
+                          <p className="text-lg font-bold text-primary">{((1 - breakEvenInfo.variableCostRate) * 100).toFixed(0)}%</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">安全边际</p>
+                          <p className="text-lg font-bold text-success">{formatCurrency(breakEvenInfo.currentSales - breakEvenInfo.breakEvenPoint)}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm text-muted-foreground">安全边际率</p>
+                          <p className="text-lg font-bold text-success">{breakEvenInfo.safetyMargin}%</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <EmptyState message="暂无本量利分析数据" icon={Calculator} />
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* 利润贡献 */}
+            <TabsContent value="contribution" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 产品利润贡献 */}
+                <div className="data-card">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold">产品利润贡献</h3>
+                    <Badge variant="outline">本月</Badge>
+                  </div>
+                  {productContribution.length > 0 ? (
+                    <div className="space-y-4">
+                      {productContribution.map((product, index) => (
+                        <div key={index} className="p-4 border rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium">{product.product}</span>
+                            <Badge className={cn(
+                              product.margin >= 35 ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
+                            )}>
+                              毛利率 {product.margin}%
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <p className="text-muted-foreground">收入</p>
+                              <p className="font-semibold">{formatCurrency(product.revenue)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">成本</p>
+                              <p className="font-semibold">{formatCurrency(product.cost)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">利润</p>
+                              <p className="font-semibold text-success">{formatCurrency(product.profit)}</p>
+                            </div>
+                          </div>
+                          {/* 进度条 */}
+                          <div className="mt-3">
+                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-primary rounded-full"
+                                style={{ width: `${Math.min((product.profit / (productContribution[0]?.profit || 1)) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="mt-6 pt-4 border-t border-border">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-muted/30 rounded-lg text-center">
-                    <p className="text-sm text-muted-foreground">毛利润</p>
-                    <p className="text-xl font-bold">{formatCurrency(285640)}</p>
-                  </div>
-                  <div className="p-4 bg-success/10 rounded-lg text-center">
-                    <p className="text-sm text-muted-foreground">净利润</p>
-                    <p className="text-xl font-bold text-success">{formatCurrency(89000)}</p>
-                  </div>
+                  ) : (
+                    <EmptyState message="暂无产品利润贡献数据" icon={PieChartIcon} />
+                  )}
                 </div>
-                <div className="mt-4 p-3 bg-primary/5 rounded-lg">
-                  <p className="text-sm text-center">
-                    <span className="text-muted-foreground">净利率</span>
-                    <span className="font-bold text-primary ml-2">31.1%</span>
-                    <span className="text-muted-foreground ml-4">费用率</span>
-                    <span className="font-bold text-warning ml-2">68.9%</span>
-                  </p>
+
+                {/* 利润结构瀑布图 */}
+                <div className="data-card">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold">利润结构分析</h3>
+                    <Badge variant="outline">瀑布图</Badge>
+                  </div>
+                  {profitStructure.length > 0 ? (
+                    <>
+                      <div className="space-y-3">
+                        {profitStructure.map((item, index) => (
+                          <div key={index} className="flex items-center gap-4">
+                            <div className="w-24 text-sm text-right">{item.name}</div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className={cn(
+                                    "h-8 rounded flex items-center justify-end px-2 text-sm font-medium text-white",
+                                    item.value >= 0 ? "bg-success" : "bg-danger"
+                                  )}
+                                  style={{ 
+                                    width: `${Math.abs(item.percent)}%`,
+                                    marginLeft: item.value < 0 ? `${100 - Math.abs(item.percent)}%` : '0'
+                                  }}
+                                >
+                                  {formatCurrency(Math.abs(item.value))}
+                                </div>
+                              </div>
+                            </div>
+                            <div className={cn(
+                              "w-16 text-sm text-right font-medium",
+                              item.value >= 0 ? "text-success" : "text-danger"
+                            )}>
+                              {item.percent >= 0 ? "+" : ""}{item.percent}%
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="mt-6 pt-4 border-t border-border">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="p-4 bg-muted/30 rounded-lg text-center">
+                            <p className="text-sm text-muted-foreground">毛利润</p>
+                            <p className="text-xl font-bold">{formatCurrency(profitSummary.grossProfit)}</p>
+                          </div>
+                          <div className="p-4 bg-success/10 rounded-lg text-center">
+                            <p className="text-sm text-muted-foreground">净利润</p>
+                            <p className="text-xl font-bold text-success">{formatCurrency(profitSummary.netProfit)}</p>
+                          </div>
+                        </div>
+                        <div className="mt-4 p-3 bg-primary/5 rounded-lg">
+                          <p className="text-sm text-center">
+                            <span className="text-muted-foreground">净利率</span>
+                            <span className="font-bold text-primary ml-2">{profitSummary.netProfitRate}%</span>
+                            <span className="text-muted-foreground ml-4">费用率</span>
+                            <span className="font-bold text-warning ml-2">{profitSummary.expenseRate}%</span>
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <EmptyState message="暂无利润结构数据" icon={BarChart3} />
+                  )}
                 </div>
               </div>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
       
       {/* 筛选对话框 */}
       <Dialog open={filterDialogOpen} onOpenChange={setFilterDialogOpen}>

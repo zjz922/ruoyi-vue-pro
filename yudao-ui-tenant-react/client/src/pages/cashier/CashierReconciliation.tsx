@@ -40,6 +40,8 @@ import {
   Clock,
   Play,
   RefreshCw,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import {
   PieChart,
@@ -49,8 +51,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { useState } from "react";
-import { baseData } from "@/data/reconciliationConfig";
+import { useState, useMemo, useCallback } from "react";
 import { useShopSwitcher } from "@/components/ShopSwitcher";
 import {
   useReconciliationList,
@@ -60,90 +61,77 @@ import {
 } from "@/hooks/useCashier";
 import { toast } from "sonner";
 
-// 对账数据 - 勾稽订单统计数据
-const reconciliationData = [
-  {
-    id: 1,
-    orderNo: "DD20240115001",
-    platformAmount: 1000.00,
-    actualAmount: 980.00,
-    difference: -20.00,
-    reason: "平台手续费",
-    status: "有差异",
-    platform: "抖音",
-    date: "2024-01-15",
-  },
-  {
-    id: 2,
-    orderNo: "DD20240115002",
-    platformAmount: 2580.00,
-    actualAmount: 2580.00,
-    difference: 0,
-    reason: "-",
-    status: "已匹配",
-    platform: "抖音",
-    date: "2024-01-15",
-  },
-  {
-    id: 3,
-    orderNo: "DD20240115003",
-    platformAmount: 1680.00,
-    actualAmount: 1650.00,
-    difference: -30.00,
-    reason: "技术服务费",
-    status: "有差异",
-    platform: "抖音",
-    date: "2024-01-15",
-  },
-  {
-    id: 4,
-    orderNo: "DD20240115004",
-    platformAmount: 890.00,
-    actualAmount: 890.00,
-    difference: 0,
-    reason: "-",
-    status: "已匹配",
-    platform: "快手",
-    date: "2024-01-15",
-  },
-  {
-    id: 5,
-    orderNo: "DD20240115005",
-    platformAmount: 3200.00,
-    actualAmount: 0,
-    difference: -3200.00,
-    reason: "未到账",
-    status: "未匹配",
-    platform: "抖音",
-    date: "2024-01-15",
-  },
-];
+// ============ 类型定义 ============
 
-// 对账状态分布 - 勾稽订单统计数据
-// 已确认金额占比 = 已匹配，未确认金额占比 = 有差异，退款额占比 = 未匹配
-const matchedRatio = Math.round(baseData.amounts.confirmed / baseData.amounts.sales * 100);
-const differenceRatio = Math.round(baseData.amounts.unconfirmed / baseData.amounts.sales * 100);
-const unmatchedRatio = Math.round(baseData.amounts.refund / baseData.amounts.sales * 100);
+interface ReconciliationItem {
+  id: number;
+  orderNo: string;
+  platformAmount: number;
+  actualAmount: number;
+  difference: number;
+  reason: string;
+  status: string;
+  platform: string;
+  date: string;
+}
 
-const statusDistribution = [
-  { name: "已匹配", value: matchedRatio, color: "#52c41a" },  // 勾稽：已确认金额占比
-  { name: "有差异", value: differenceRatio, color: "#faad14" },  // 勾稽：未确认金额占比
-  { name: "未匹配", value: unmatchedRatio, color: "#ff4d4f" },  // 勾稽：退款额占比
-];
+interface StatusDistributionItem {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface ReconciliationStats {
+  total: number;
+  matched: number;
+  matchedRate: number;
+  hasDifference: number;
+  differenceAmount: number;
+  unmatched: number;
+  unmatchedAmount: number;
+}
+
+interface ReconciliationApiData {
+  records?: ReconciliationItem[];
+  stats?: ReconciliationStats;
+  statusDistribution?: StatusDistributionItem[];
+}
+
+// ============ 空状态组件 ============
+function EmptyState({ message, icon: Icon = AlertCircle }: { message: string; icon?: React.ElementType }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+      <Icon className="h-10 w-10 mb-3 opacity-50" />
+      <p className="text-sm">{message}</p>
+      <p className="text-xs mt-1">请确认Java后端服务已启动</p>
+    </div>
+  );
+}
+
+// ============ 加载状态组件 ============
+function LoadingState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-8">
+      <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+      <p className="text-sm text-muted-foreground">正在加载数据...</p>
+    </div>
+  );
+}
 
 export default function CashierReconciliation() {
   const { currentShopId } = useShopSwitcher();
   const shopId = currentShopId ? Number(currentShopId) : 0;
   const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<ReconciliationItem | null>(null);
   const [processAction, setProcessAction] = useState("confirm");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [platform, setPlatform] = useState("");
   const [status, setStatus] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
   
   // API调用
-  const { data: reconciliationApiData, isLoading, refetch } = useReconciliationList({
+  const { data: reconciliationApiData, isLoading, error, refetch } = useReconciliationList({
     shopId,
     startDate: dateRange.start,
     endDate: dateRange.end,
@@ -153,35 +141,71 @@ export default function CashierReconciliation() {
   const startMutation = useReconciliationStart();
   const exportMutation = useReconciliationExport();
   const markVerifiedMutation = useReconciliationMarkVerified();
-  
-  // 使用API数据或静态数据
-  const apiData = reconciliationApiData as { records?: typeof reconciliationData } | undefined;
-  const displayData = apiData?.records || reconciliationData;
+
+  // 类型断言
+  const typedApiData = reconciliationApiData as ReconciliationApiData | undefined;
+
+  // 从API响应中提取数据
+  const reconciliationData = useMemo<ReconciliationItem[]>(() => {
+    return typedApiData?.records || [];
+  }, [typedApiData]);
+
+  const stats = useMemo<ReconciliationStats>(() => {
+    if (typedApiData?.stats) {
+      return typedApiData.stats;
+    }
+    return {
+      total: 0,
+      matched: 0,
+      matchedRate: 0,
+      hasDifference: 0,
+      differenceAmount: 0,
+      unmatched: 0,
+      unmatchedAmount: 0,
+    };
+  }, [typedApiData]);
+
+  const statusDistribution = useMemo<StatusDistributionItem[]>(() => {
+    if (typedApiData?.statusDistribution) {
+      return typedApiData.statusDistribution;
+    }
+    return [];
+  }, [typedApiData]);
+
+  // 检查是否有数据
+  const hasData = reconciliationData.length > 0;
+  const hasStatsData = stats.total > 0;
+  const hasDistributionData = statusDistribution.length > 0;
   
   // 开始对账
-  const handleStartReconciliation = () => {
+  const handleStartReconciliation = useCallback(() => {
     startMutation.mutate({
       shopId,
       startDate: dateRange.start || new Date().toISOString().split('T')[0],
       endDate: dateRange.end || new Date().toISOString().split('T')[0],
       platform: platform || 'doudian',
     }, {
-      onSuccess: () => refetch(),
+      onSuccess: () => {
+        refetch();
+        toast.success("对账任务已启动");
+      },
     });
-  };
+  }, [startMutation, shopId, dateRange, platform, refetch]);
   
   // 导出报告
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     exportMutation.mutate({
       shopId,
       startDate: dateRange.start,
       endDate: dateRange.end,
       format: 'excel',
+    }, {
+      onSuccess: () => toast.success("导出成功"),
     });
-  };
+  }, [exportMutation, shopId, dateRange]);
   
   // 标记已核对
-  const handleMarkVerified = () => {
+  const handleMarkVerified = useCallback(() => {
     if (selectedIds.length === 0) {
       toast.error("请先选择要标记的记录");
       return;
@@ -190,20 +214,34 @@ export default function CashierReconciliation() {
       onSuccess: () => {
         setSelectedIds([]);
         refetch();
+        toast.success("标记成功");
       },
     });
-  };
+  }, [markVerifiedMutation, selectedIds, refetch]);
   
   // 导入账单
-  const handleImport = () => {
+  const handleImport = useCallback(() => {
     toast.info("导入账单功能开发中");
-  };
+  }, []);
   
   // 处理差异
-  const handleProcessOrder = (order: typeof reconciliationData[0]) => {
+  const handleProcessOrder = useCallback((order: ReconciliationItem) => {
     setSelectedOrder(order);
     setIsProcessModalOpen(true);
-  };
+  }, []);
+
+  // 重置筛选
+  const handleReset = useCallback(() => {
+    setDateRange({ start: "", end: "" });
+    setPlatform("");
+    setStatus("");
+    setSearchKeyword("");
+  }, []);
+
+  // 查询
+  const handleSearch = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   return (
     <AppLayout>
@@ -240,217 +278,248 @@ export default function CashierReconciliation() {
         </div>
       </div>
 
-      {/* 统计卡片 */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <Card className="border-l-4 border-l-blue-500">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-              <FileCheck className="w-4 h-4" />
-              总笔数
-            </div>
-            <div className="text-2xl font-bold text-gray-900">256</div>
-            <div className="text-xs text-gray-500 mt-1">今日待对账订单</div>
-          </CardContent>
-        </Card>
+      {/* 加载状态 */}
+      {isLoading && <LoadingState />}
 
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-              <CheckCircle className="w-4 h-4" />
-              已匹配
-            </div>
-            <div className="text-2xl font-bold text-green-600">218</div>
-            <div className="text-xs text-green-600 mt-1">匹配率 85.2%</div>
-          </CardContent>
-        </Card>
+      {/* 错误状态 */}
+      {error && !isLoading && (
+        <EmptyState message="数据加载失败，请检查网络连接" icon={AlertCircle} />
+      )}
 
-        <Card className="border-l-4 border-l-yellow-500">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-              <AlertTriangle className="w-4 h-4" />
-              有差异
-            </div>
-            <div className="text-2xl font-bold text-yellow-600">26</div>
-            <div className="text-xs text-yellow-600 mt-1">差异金额 ¥1,580</div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-red-500">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-              <XCircle className="w-4 h-4" />
-              未匹配
-            </div>
-            <div className="text-2xl font-bold text-red-600">12</div>
-            <div className="text-xs text-red-600 mt-1">待处理金额 ¥15,800</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 图表和筛选 */}
-      <div className="grid grid-cols-3 gap-6 mb-6">
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle className="text-base">对账状态分布</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusDistribution}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {statusDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => `${value}%`} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">筛选条件</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs text-gray-500">日期范围</Label>
-                <Input type="date" className="h-9" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-gray-500">平台</Label>
-                <Select>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="全部平台" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">全部平台</SelectItem>
-                    <SelectItem value="douyin">抖音</SelectItem>
-                    <SelectItem value="kuaishou">快手</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-gray-500">状态</Label>
-                <Select>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder="全部状态" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">全部状态</SelectItem>
-                    <SelectItem value="matched">已匹配</SelectItem>
-                    <SelectItem value="diff">有差异</SelectItem>
-                    <SelectItem value="unmatched">未匹配</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-gray-500">搜索</Label>
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input placeholder="订单号" className="pl-8 h-9" />
+      {/* 有数据时显示内容 */}
+      {!isLoading && !error && (
+        <>
+          {/* 统计卡片 */}
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            <Card className="border-l-4 border-l-blue-500">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+                  <FileCheck className="w-4 h-4" />
+                  总笔数
                 </div>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <Button size="sm">查询</Button>
-              <Button size="sm" variant="outline">
-                <RefreshCw className="w-4 h-4 mr-1" />
-                重置
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+                <div className="text-xs text-gray-500 mt-1">今日待对账订单</div>
+              </CardContent>
+            </Card>
 
-      {/* 对账列表 */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">对账明细</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>订单号</TableHead>
-                <TableHead>平台</TableHead>
-                <TableHead className="text-right">平台账单金额</TableHead>
-                <TableHead className="text-right">实际到账金额</TableHead>
-                <TableHead className="text-right">差异金额</TableHead>
-                <TableHead>差异原因</TableHead>
-                <TableHead>状态</TableHead>
-                <TableHead>操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {reconciliationData.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-mono text-sm">{item.orderNo}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{item.platform}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    ¥{item.platformAmount.toFixed(2)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    ¥{item.actualAmount.toFixed(2)}
-                  </TableCell>
-                  <TableCell
-                    className={`text-right font-medium ${
-                      item.difference < 0
-                        ? "text-red-600"
-                        : item.difference > 0
-                        ? "text-green-600"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    {item.difference !== 0
-                      ? `${item.difference > 0 ? "+" : ""}¥${item.difference.toFixed(2)}`
-                      : "-"}
-                  </TableCell>
-                  <TableCell className="text-gray-500">{item.reason}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="default"
-                      className={
-                        item.status === "已匹配"
-                          ? "bg-green-100 text-green-700"
-                          : item.status === "有差异"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-red-100 text-red-700"
-                      }
-                    >
-                      {item.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {item.status !== "已匹配" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleProcessOrder(item)}
-                      >
-                        处理
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            <Card className="border-l-4 border-l-green-500">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+                  <CheckCircle className="w-4 h-4" />
+                  已匹配
+                </div>
+                <div className="text-2xl font-bold text-green-600">{stats.matched}</div>
+                <div className="text-xs text-green-600 mt-1">匹配率 {stats.matchedRate}%</div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-yellow-500">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+                  <AlertTriangle className="w-4 h-4" />
+                  有差异
+                </div>
+                <div className="text-2xl font-bold text-yellow-600">{stats.hasDifference}</div>
+                <div className="text-xs text-yellow-600 mt-1">差异金额 ¥{stats.differenceAmount.toLocaleString()}</div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-red-500">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+                  <XCircle className="w-4 h-4" />
+                  未匹配
+                </div>
+                <div className="text-2xl font-bold text-red-600">{stats.unmatched}</div>
+                <div className="text-xs text-red-600 mt-1">待处理金额 ¥{stats.unmatchedAmount.toLocaleString()}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 图表和筛选 */}
+          <div className="grid grid-cols-3 gap-6 mb-6">
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle className="text-base">对账状态分布</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {hasDistributionData ? (
+                  <div className="h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={statusDistribution}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={80}
+                          paddingAngle={2}
+                          dataKey="value"
+                        >
+                          {statusDistribution.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number) => `${value}%`} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <EmptyState message="暂无状态分布数据" icon={FileCheck} />
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base">筛选条件</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-gray-500">日期范围</Label>
+                    <Input 
+                      type="date" 
+                      className="h-9" 
+                      value={dateRange.start}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-gray-500">平台</Label>
+                    <Select value={platform} onValueChange={setPlatform}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="全部平台" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">全部平台</SelectItem>
+                        <SelectItem value="douyin">抖音</SelectItem>
+                        <SelectItem value="kuaishou">快手</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-gray-500">状态</Label>
+                    <Select value={status} onValueChange={setStatus}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="全部状态" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">全部状态</SelectItem>
+                        <SelectItem value="matched">已匹配</SelectItem>
+                        <SelectItem value="diff">有差异</SelectItem>
+                        <SelectItem value="unmatched">未匹配</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-gray-500">搜索</Label>
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input 
+                        placeholder="订单号" 
+                        className="pl-8 h-9" 
+                        value={searchKeyword}
+                        onChange={(e) => setSearchKeyword(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <Button size="sm" onClick={handleSearch}>查询</Button>
+                  <Button size="sm" variant="outline" onClick={handleReset}>
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    重置
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 对账列表 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">对账明细</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {hasData ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>订单号</TableHead>
+                      <TableHead>平台</TableHead>
+                      <TableHead className="text-right">平台账单金额</TableHead>
+                      <TableHead className="text-right">实际到账金额</TableHead>
+                      <TableHead className="text-right">差异金额</TableHead>
+                      <TableHead>差异原因</TableHead>
+                      <TableHead>状态</TableHead>
+                      <TableHead>操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {reconciliationData.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-mono text-sm">{item.orderNo}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{item.platform}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ¥{item.platformAmount.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ¥{item.actualAmount.toFixed(2)}
+                        </TableCell>
+                        <TableCell
+                          className={`text-right font-medium ${
+                            item.difference < 0
+                              ? "text-red-600"
+                              : item.difference > 0
+                              ? "text-green-600"
+                              : "text-gray-500"
+                          }`}
+                        >
+                          {item.difference !== 0
+                            ? `${item.difference > 0 ? "+" : ""}¥${item.difference.toFixed(2)}`
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="text-gray-500">{item.reason}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="default"
+                            className={
+                              item.status === "已匹配"
+                                ? "bg-green-100 text-green-700"
+                                : item.status === "有差异"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : "bg-red-100 text-red-700"
+                            }
+                          >
+                            {item.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {item.status !== "已匹配" && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleProcessOrder(item)}
+                            >
+                              处理
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <EmptyState message="暂无对账数据" icon={FileCheck} />
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {/* 处理差异弹窗 */}
       <Dialog open={isProcessModalOpen} onOpenChange={setIsProcessModalOpen}>
@@ -505,12 +574,12 @@ export default function CashierReconciliation() {
 
             <div className="space-y-2">
               <Label>详细说明</Label>
-              <Textarea placeholder="请输入详细说明" defaultValue="平台收取了额外的技术服务费" />
+              <Textarea placeholder="请输入详细说明" />
             </div>
 
             <div className="space-y-2">
               <Label>处理方式</Label>
-              <RadioGroup defaultValue="accept">
+              <RadioGroup defaultValue="accept" value={processAction} onValueChange={setProcessAction}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="accept" id="accept" />
                   <Label htmlFor="accept" className="font-normal">
@@ -535,7 +604,7 @@ export default function CashierReconciliation() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>处理人</Label>
-                <Input defaultValue="张出纳" />
+                <Input placeholder="请输入处理人" />
               </div>
               <div className="space-y-2">
                 <Label>处理时间</Label>
@@ -547,7 +616,11 @@ export default function CashierReconciliation() {
             <Button variant="outline" onClick={() => setIsProcessModalOpen(false)}>
               取消
             </Button>
-            <Button onClick={() => setIsProcessModalOpen(false)}>
+            <Button onClick={() => {
+              setIsProcessModalOpen(false);
+              toast.success("差异处理成功");
+              refetch();
+            }}>
               确认处理
             </Button>
           </DialogFooter>

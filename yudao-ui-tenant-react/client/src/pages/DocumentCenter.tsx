@@ -1,5 +1,5 @@
 import AppLayout from "@/components/AppLayout";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   FileText,
   Search,
@@ -24,6 +24,8 @@ import {
   MapPin,
   Box,
   ClipboardList,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -45,6 +47,66 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReconciliationIndicator } from "@/components/ReconciliationIndicator";
+import { useShopSwitcher } from "@/components/ShopSwitcher";
+// 暂时不使用trpc，等待Java后端实现
+import { toast } from "sonner";
+
+// ============ 类型定义 ============
+
+interface PickingDoc {
+  id: string;
+  createTime: string;
+  orderCount: number;
+  productCount: number;
+  status: string;
+  operator: string;
+  shop: string;
+  orders: string[];
+}
+
+interface OutboundDoc {
+  id: string;
+  createTime: string;
+  relatedDoc: string;
+  productCount: number;
+  totalAmount: number;
+  status: string;
+  operator: string;
+  warehouse: string;
+  logistics: string;
+  trackingNo: string;
+}
+
+interface InboundDoc {
+  id: string;
+  createTime: string;
+  supplier: string;
+  productCount: number;
+  totalAmount: number;
+  status: string;
+  operator: string;
+  warehouse: string;
+  purchaseNo: string;
+}
+
+interface ReturnDoc {
+  id: string;
+  createTime: string;
+  orderId: string;
+  productName: string;
+  reason: string;
+  refundAmount: number;
+  status: string;
+  operator: string;
+  buyer: string;
+}
+
+interface DocumentApiData {
+  pickingDocs?: PickingDoc[];
+  outboundDocs?: OutboundDoc[];
+  inboundDocs?: InboundDoc[];
+  returnDocs?: ReturnDoc[];
+}
 
 // 单据类型定义
 const documentTypes = [
@@ -62,163 +124,26 @@ const documentStatuses = [
   { value: "cancelled", label: "已取消", color: "bg-red-100 text-red-600" },
 ];
 
-// 模拟配货单数据
-const mockPickingDocs = [
-  {
-    id: "PH202601110001",
-    createTime: "2026-01-11 10:35:00",
-    orderCount: 5,
-    productCount: 12,
-    status: "pending",
-    operator: "张三",
-    shop: "旗舰店",
-    orders: ["DD202601110001", "DD202601110002", "DD202601110003", "DD202601110004", "DD202601110005"],
-  },
-  {
-    id: "PH202601110002",
-    createTime: "2026-01-11 09:20:00",
-    orderCount: 3,
-    productCount: 8,
-    status: "processing",
-    operator: "李四",
-    shop: "专营店",
-    orders: ["DD202601110006", "DD202601110007", "DD202601110008"],
-  },
-  {
-    id: "PH202601100001",
-    createTime: "2026-01-10 16:45:00",
-    orderCount: 8,
-    productCount: 20,
-    status: "completed",
-    operator: "张三",
-    shop: "旗舰店",
-    orders: [],
-  },
-  {
-    id: "PH202601100002",
-    createTime: "2026-01-10 14:30:00",
-    orderCount: 4,
-    productCount: 10,
-    status: "completed",
-    operator: "王五",
-    shop: "专营店",
-    orders: [],
-  },
-];
+// ============ 空状态组件 ============
+function EmptyState({ message, icon: Icon = AlertCircle }: { message: string; icon?: React.ElementType }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+      <Icon className="h-10 w-10 mb-3 opacity-50" />
+      <p className="text-sm">{message}</p>
+      <p className="text-xs mt-1">请确认Java后端服务已启动</p>
+    </div>
+  );
+}
 
-// 模拟出库单数据
-const mockOutboundDocs = [
-  {
-    id: "CK202601110001",
-    createTime: "2026-01-11 11:00:00",
-    relatedDoc: "PH202601100001",
-    productCount: 20,
-    totalAmount: 12580,
-    status: "completed",
-    operator: "张三",
-    warehouse: "主仓库",
-    logistics: "顺丰速运",
-    trackingNo: "SF1234567890",
-  },
-  {
-    id: "CK202601110002",
-    createTime: "2026-01-11 10:30:00",
-    relatedDoc: "PH202601100002",
-    productCount: 10,
-    totalAmount: 5680,
-    status: "processing",
-    operator: "李四",
-    warehouse: "主仓库",
-    logistics: "中通快递",
-    trackingNo: "ZT9876543210",
-  },
-  {
-    id: "CK202601100001",
-    createTime: "2026-01-10 17:00:00",
-    relatedDoc: "PH202601090001",
-    productCount: 15,
-    totalAmount: 8920,
-    status: "completed",
-    operator: "王五",
-    warehouse: "分仓A",
-    logistics: "韵达快递",
-    trackingNo: "YD1122334455",
-  },
-];
-
-// 模拟入库单数据
-const mockInboundDocs = [
-  {
-    id: "RK202601110001",
-    createTime: "2026-01-11 09:00:00",
-    supplier: "深圳电子科技有限公司",
-    productCount: 100,
-    totalAmount: 35000,
-    status: "completed",
-    operator: "张三",
-    warehouse: "主仓库",
-    purchaseNo: "CG202601100001",
-  },
-  {
-    id: "RK202601100001",
-    createTime: "2026-01-10 14:00:00",
-    supplier: "广州配件供应商",
-    productCount: 50,
-    totalAmount: 12500,
-    status: "completed",
-    operator: "李四",
-    warehouse: "分仓A",
-    purchaseNo: "CG202601090001",
-  },
-  {
-    id: "RK202601090001",
-    createTime: "2026-01-09 10:30:00",
-    supplier: "东莞包装材料厂",
-    productCount: 200,
-    totalAmount: 8000,
-    status: "completed",
-    operator: "王五",
-    warehouse: "主仓库",
-    purchaseNo: "CG202601080001",
-  },
-];
-
-// 模拟退货单数据
-const mockReturnDocs = [
-  {
-    id: "TH202601110001",
-    createTime: "2026-01-11 10:15:00",
-    orderId: "DD202601050001",
-    productName: "高端无线蓝牙耳机 降噪版",
-    reason: "商品质量问题",
-    refundAmount: 279,
-    status: "processing",
-    operator: "客服小王",
-    buyer: "张**",
-  },
-  {
-    id: "TH202601100001",
-    createTime: "2026-01-10 15:30:00",
-    orderId: "DD202601030002",
-    productName: "智能手表 运动版",
-    reason: "不喜欢/不想要",
-    refundAmount: 908,
-    status: "completed",
-    operator: "客服小李",
-    buyer: "李**",
-  },
-  {
-    id: "TH202601090001",
-    createTime: "2026-01-09 11:00:00",
-    orderId: "DD202601020003",
-    productName: "便携式蓝牙音箱",
-    reason: "发错商品",
-    refundAmount: 129,
-    status: "completed",
-    operator: "客服小王",
-    buyer: "王**",
-  },
-];
+// ============ 加载状态组件 ============
+function LoadingState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-12">
+      <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+      <p className="text-sm text-muted-foreground">正在加载数据...</p>
+    </div>
+  );
+}
 
 // 格式化金额
 function formatCurrency(value: number): string {
@@ -231,25 +156,56 @@ function getStatusConfig(status: string) {
 }
 
 export default function DocumentCenter() {
+  const { currentShopId } = useShopSwitcher();
+  const shopId = currentShopId ? Number(currentShopId) : 0;
   const [activeTab, setActiveTab] = useState("picking");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [showDetail, setShowDetail] = useState(false);
-  const [selectedDoc, setSelectedDoc] = useState<any>(null);
+  const [selectedDoc, setSelectedDoc] = useState<PickingDoc | OutboundDoc | InboundDoc | ReturnDoc | null>(null);
+
+  // 暂时使用空数据，等待Java后端实现
+  const isLoading = false;
+  const error = null;
+  const apiData: DocumentApiData | undefined = undefined;
+
+  // 类型断言
+  const typedApiData = apiData as DocumentApiData | undefined;
+
+  // 从API响应中提取数据
+  const pickingDocs = useMemo(() => typedApiData?.pickingDocs || [], [typedApiData]);
+  const outboundDocs = useMemo(() => typedApiData?.outboundDocs || [], [typedApiData]);
+  const inboundDocs = useMemo(() => typedApiData?.inboundDocs || [], [typedApiData]);
+  const returnDocs = useMemo(() => typedApiData?.returnDocs || [], [typedApiData]);
 
   // 统计数据
-  const stats = {
-    picking: { total: mockPickingDocs.length, pending: mockPickingDocs.filter(d => d.status === "pending").length },
-    outbound: { total: mockOutboundDocs.length, pending: mockOutboundDocs.filter(d => d.status === "processing").length },
-    inbound: { total: mockInboundDocs.length, pending: 0 },
-    return: { total: mockReturnDocs.length, pending: mockReturnDocs.filter(d => d.status === "processing").length },
-  };
+  const stats = useMemo(() => ({
+    picking: { total: pickingDocs.length, pending: pickingDocs.filter(d => d.status === "pending").length },
+    outbound: { total: outboundDocs.length, pending: outboundDocs.filter(d => d.status === "processing").length },
+    inbound: { total: inboundDocs.length, pending: 0 },
+    return: { total: returnDocs.length, pending: returnDocs.filter(d => d.status === "processing").length },
+  }), [pickingDocs, outboundDocs, inboundDocs, returnDocs]);
 
   // 查看详情
-  const viewDetail = (doc: any) => {
+  const viewDetail = useCallback((doc: PickingDoc | OutboundDoc | InboundDoc | ReturnDoc) => {
     setSelectedDoc(doc);
     setShowDetail(true);
-  };
+  }, []);
+
+  // 新建单据
+  const handleCreateDoc = useCallback(() => {
+    toast.info("新建单据功能待Java后端实现");
+  }, []);
+
+  // 导出
+  const handleExport = useCallback(() => {
+    toast.info("导出功能待Java后端实现");
+  }, []);
+
+  // 打印
+  const handlePrint = useCallback(() => {
+    toast.info("打印功能待Java后端实现");
+  }, []);
 
   return (
     <AppLayout>
@@ -263,7 +219,7 @@ export default function DocumentCenter() {
               <p className="text-sm text-muted-foreground mt-1">管理配货单、出库单、入库单、退货单等业务单据</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button>
+              <Button onClick={handleCreateDoc}>
                 <Plus className="w-4 h-4 mr-1" />
                 新建单据
               </Button>
@@ -339,68 +295,63 @@ export default function DocumentCenter() {
                 <div 
                   key={type.value}
                   className={cn(
-                    "rounded-lg p-3 cursor-pointer transition-colors border-2",
+                    "p-4 rounded-lg border cursor-pointer transition-all",
                     activeTab === type.value 
-                      ? "bg-primary/10 border-primary" 
-                      : "bg-muted/30 border-transparent hover:bg-muted/50"
+                      ? "border-primary bg-primary/5" 
+                      : "border-border hover:border-primary/50"
                   )}
                   onClick={() => setActiveTab(type.value)}
                 >
-                  <div className="flex items-center gap-2">
-                    <Icon className={cn("w-5 h-5", type.color)} />
-                    <span className="font-medium">{type.label}</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-2xl font-bold">{stat.total}</span>
-                    {stat.pending > 0 && (
-                      <Badge variant="destructive" className="text-xs">
-                        {stat.pending} 待处理
-                      </Badge>
-                    )}
+                  <div className="flex items-center gap-3">
+                    <div className={cn("p-2 rounded-lg bg-muted", type.color)}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">{type.label}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl font-bold">{stat.total}</span>
+                        {stat.pending > 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            {stat.pending} 待处理
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* 搜索和筛选 */}
+          {/* 筛选栏 */}
           <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-md">
+            <div className="relative flex-1 max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="搜索单据编号..."
+                placeholder="搜索单据号..."
+                className="pl-9"
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
-                className="pl-9"
               />
             </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-32">
-                <SelectValue placeholder="状态" />
+                <SelectValue placeholder="状态筛选" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部状态</SelectItem>
-                <SelectItem value="pending">待处理</SelectItem>
-                <SelectItem value="processing">处理中</SelectItem>
-                <SelectItem value="completed">已完成</SelectItem>
-                <SelectItem value="cancelled">已取消</SelectItem>
+                {documentStatuses.map(status => (
+                  <SelectItem key={status.value} value={status.value}>
+                    {status.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            <Select defaultValue="today">
-              <SelectTrigger className="w-32">
-                <Calendar className="w-4 h-4 mr-1" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="today">今日</SelectItem>
-                <SelectItem value="yesterday">昨日</SelectItem>
-                <SelectItem value="week">近7天</SelectItem>
-                <SelectItem value="month">近30天</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm">
-              <Download className="w-4 h-4 mr-1" />
-              导出
+            <Button variant="outline" size="icon" onClick={handleExport}>
+              <Download className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={handlePrint}>
+              <Printer className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -408,343 +359,297 @@ export default function DocumentCenter() {
 
       {/* 单据列表 */}
       <div className="flex-1 overflow-auto p-4">
-        {/* 配货单列表 */}
-        {activeTab === "picking" && (
-          <div className="bg-card rounded-lg border border-border overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">单据编号</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">创建时间</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">订单数</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">商品数</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">店铺</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">状态</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">操作员</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {mockPickingDocs.map((doc) => {
-                  const statusConfig = getStatusConfig(doc.status);
-                  return (
-                    <tr key={doc.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <span className="font-medium font-mono">{doc.id}</span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">{doc.createTime}</td>
-                      <td className="px-4 py-3 text-center">{doc.orderCount}</td>
-                      <td className="px-4 py-3 text-center">{doc.productCount}</td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge variant="outline">{doc.shop}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge className={statusConfig.color}>{statusConfig.label}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center text-sm">{doc.operator}</td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => viewDetail(doc)}>
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Printer className="w-4 h-4" />
-                          </Button>
+        {/* 加载状态 */}
+        {isLoading && <LoadingState />}
+
+        {/* 错误状态 */}
+        {error && !isLoading && (
+          <EmptyState message="数据加载失败，请检查网络连接" icon={AlertCircle} />
+        )}
+
+        {/* 有数据时显示列表 */}
+        {!isLoading && !error && (
+          <>
+            {/* 配货单列表 */}
+            {activeTab === "picking" && (
+              <div className="space-y-3">
+                {pickingDocs.length > 0 ? (
+                  pickingDocs.map(doc => (
+                    <div 
+                      key={doc.id}
+                      className="p-4 rounded-lg border border-border bg-card hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => viewDetail(doc)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 rounded-lg bg-blue-100">
+                            <ClipboardList className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{doc.id}</p>
+                            <p className="text-sm text-muted-foreground">{doc.createTime}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">订单数</p>
+                            <p className="font-medium">{doc.orderCount}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">商品数</p>
+                            <p className="font-medium">{doc.productCount}</p>
+                          </div>
+                          <Badge className={getStatusConfig(doc.status).color}>
+                            {getStatusConfig(doc.status).label}
+                          </Badge>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Button variant="ghost" size="icon">
                                 <MoreHorizontal className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <CheckCircle2 className="w-4 h-4 mr-2" />
-                                标记完成
+                              <DropdownMenuItem onClick={() => viewDetail(doc)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                查看详情
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <ArrowUpFromLine className="w-4 h-4 mr-2" />
-                                生成出库单
+                              <DropdownMenuItem onClick={handlePrint}>
+                                <Printer className="w-4 h-4 mr-2" />
+                                打印
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem className="text-destructive">
                                 <X className="w-4 h-4 mr-2" />
-                                取消单据
+                                取消
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState message="暂无配货单数据" icon={ClipboardList} />
+                )}
+              </div>
+            )}
 
-        {/* 出库单列表 */}
-        {activeTab === "outbound" && (
-          <div className="bg-card rounded-lg border border-border overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">单据编号</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">创建时间</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">关联配货单</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">商品数</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">出库金额</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">物流</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">状态</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {mockOutboundDocs.map((doc) => {
-                  const statusConfig = getStatusConfig(doc.status);
-                  return (
-                    <tr key={doc.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <span className="font-medium font-mono">{doc.id}</span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">{doc.createTime}</td>
-                      <td className="px-4 py-3">
-                        <span className="text-sm text-primary cursor-pointer hover:underline">{doc.relatedDoc}</span>
-                      </td>
-                      <td className="px-4 py-3 text-center">{doc.productCount}</td>
-                      <td className="px-4 py-3 text-right font-medium">{formatCurrency(doc.totalAmount)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="text-sm">
-                          <div>{doc.logistics}</div>
-                          <div className="text-xs text-muted-foreground">{doc.trackingNo}</div>
+            {/* 出库单列表 */}
+            {activeTab === "outbound" && (
+              <div className="space-y-3">
+                {outboundDocs.length > 0 ? (
+                  outboundDocs.map(doc => (
+                    <div 
+                      key={doc.id}
+                      className="p-4 rounded-lg border border-border bg-card hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => viewDetail(doc)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 rounded-lg bg-green-100">
+                            <ArrowUpFromLine className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{doc.id}</p>
+                            <p className="text-sm text-muted-foreground">{doc.createTime}</p>
+                          </div>
                         </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge className={statusConfig.color}>{statusConfig.label}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Printer className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* 入库单列表 */}
-        {activeTab === "inbound" && (
-          <div className="bg-card rounded-lg border border-border overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">单据编号</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">创建时间</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">供应商</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">商品数</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">入库金额</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">仓库</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">状态</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {mockInboundDocs.map((doc) => {
-                  const statusConfig = getStatusConfig(doc.status);
-                  return (
-                    <tr key={doc.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <span className="font-medium font-mono">{doc.id}</span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">{doc.createTime}</td>
-                      <td className="px-4 py-3 text-sm">{doc.supplier}</td>
-                      <td className="px-4 py-3 text-center">{doc.productCount}</td>
-                      <td className="px-4 py-3 text-right font-medium">{formatCurrency(doc.totalAmount)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge variant="outline">{doc.warehouse}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge className={statusConfig.color}>{statusConfig.label}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Printer className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* 退货单列表 */}
-        {activeTab === "return" && (
-          <div className="bg-card rounded-lg border border-border overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">单据编号</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">创建时间</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">原订单</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">商品</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">退货原因</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">退款金额</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">状态</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-muted-foreground">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {mockReturnDocs.map((doc) => {
-                  const statusConfig = getStatusConfig(doc.status);
-                  return (
-                    <tr key={doc.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <span className="font-medium font-mono">{doc.id}</span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-muted-foreground">{doc.createTime}</td>
-                      <td className="px-4 py-3">
-                        <span className="text-sm text-primary cursor-pointer hover:underline">{doc.orderId}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-sm truncate max-w-[150px] block">{doc.productName}</span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant="outline" className="text-xs">{doc.reason}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-right font-medium text-red-600">
-                        -{formatCurrency(doc.refundAmount)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <Badge className={statusConfig.color}>{statusConfig.label}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <Eye className="w-4 h-4" />
-                          </Button>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">商品数</p>
+                            <p className="font-medium">{doc.productCount}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">金额</p>
+                            <p className="font-medium">{formatCurrency(doc.totalAmount)}</p>
+                          </div>
+                          <Badge className={getStatusConfig(doc.status).color}>
+                            {getStatusConfig(doc.status).label}
+                          </Badge>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <Button variant="ghost" size="icon">
                                 <MoreHorizontal className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <CheckCircle2 className="w-4 h-4 mr-2" />
-                                确认收货
+                              <DropdownMenuItem onClick={() => viewDetail(doc)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                查看详情
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <ArrowDownToLine className="w-4 h-4 mr-2" />
-                                生成入库单
+                              <DropdownMenuItem onClick={handlePrint}>
+                                <Printer className="w-4 h-4 mr-2" />
+                                打印
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState message="暂无出库单数据" icon={ArrowUpFromLine} />
+                )}
+              </div>
+            )}
 
-        {/* 分页 */}
-        <div className="flex items-center justify-between mt-4">
-          <div className="text-sm text-muted-foreground">
-            共 <span className="font-medium">
-              {activeTab === "picking" && mockPickingDocs.length}
-              {activeTab === "outbound" && mockOutboundDocs.length}
-              {activeTab === "inbound" && mockInboundDocs.length}
-              {activeTab === "return" && mockReturnDocs.length}
-            </span> 条记录
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled>上一页</Button>
-            <Button variant="outline" size="sm" className="bg-primary text-primary-foreground">1</Button>
-            <Button variant="outline" size="sm">下一页</Button>
-          </div>
-        </div>
+            {/* 入库单列表 */}
+            {activeTab === "inbound" && (
+              <div className="space-y-3">
+                {inboundDocs.length > 0 ? (
+                  inboundDocs.map(doc => (
+                    <div 
+                      key={doc.id}
+                      className="p-4 rounded-lg border border-border bg-card hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => viewDetail(doc)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 rounded-lg bg-purple-100">
+                            <ArrowDownToLine className="w-5 h-5 text-purple-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{doc.id}</p>
+                            <p className="text-sm text-muted-foreground">{doc.createTime}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">供应商</p>
+                            <p className="font-medium">{doc.supplier}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">金额</p>
+                            <p className="font-medium">{formatCurrency(doc.totalAmount)}</p>
+                          </div>
+                          <Badge className={getStatusConfig(doc.status).color}>
+                            {getStatusConfig(doc.status).label}
+                          </Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => viewDetail(doc)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                查看详情
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={handlePrint}>
+                                <Printer className="w-4 h-4 mr-2" />
+                                打印
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState message="暂无入库单数据" icon={ArrowDownToLine} />
+                )}
+              </div>
+            )}
+
+            {/* 退货单列表 */}
+            {activeTab === "return" && (
+              <div className="space-y-3">
+                {returnDocs.length > 0 ? (
+                  returnDocs.map(doc => (
+                    <div 
+                      key={doc.id}
+                      className="p-4 rounded-lg border border-border bg-card hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => viewDetail(doc)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2 rounded-lg bg-orange-100">
+                            <RotateCcw className="w-5 h-5 text-orange-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{doc.id}</p>
+                            <p className="text-sm text-muted-foreground">{doc.createTime}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">商品</p>
+                            <p className="font-medium truncate max-w-32">{doc.productName}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">退款金额</p>
+                            <p className="font-medium text-orange-600">{formatCurrency(doc.refundAmount)}</p>
+                          </div>
+                          <Badge className={getStatusConfig(doc.status).color}>
+                            {getStatusConfig(doc.status).label}
+                          </Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => viewDetail(doc)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                查看详情
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={handlePrint}>
+                                <Printer className="w-4 h-4 mr-2" />
+                                打印
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState message="暂无退货单数据" icon={RotateCcw} />
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* 详情侧边栏 */}
       {showDetail && selectedDoc && (
-        <div className="fixed inset-0 z-50 flex">
-          <div className="flex-1 bg-black/50" onClick={() => setShowDetail(false)} />
-          <div className="w-[400px] bg-card border-l border-border overflow-auto">
-            <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between">
-              <h2 className="font-semibold">单据详情</h2>
-              <Button variant="ghost" size="sm" onClick={() => setShowDetail(false)}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-
-            <div className="p-4 space-y-4">
-              <div className="bg-muted/30 rounded-lg p-3 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">单据编号</span>
-                  <span className="font-medium font-mono">{selectedDoc.id}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">创建时间</span>
-                  <span>{selectedDoc.createTime}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">订单数量</span>
-                  <span>{selectedDoc.orderCount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">商品数量</span>
-                  <span>{selectedDoc.productCount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">操作员</span>
-                  <span>{selectedDoc.operator}</span>
-                </div>
+        <div className="fixed inset-y-0 right-0 w-96 bg-card border-l border-border shadow-xl z-50">
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <h3 className="font-semibold">单据详情</h3>
+            <Button variant="ghost" size="icon" onClick={() => setShowDetail(false)}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="p-4">
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">单据号</p>
+                <p className="font-medium">{selectedDoc.id}</p>
               </div>
-
-              {selectedDoc.orders && selectedDoc.orders.length > 0 && (
+              <div>
+                <p className="text-sm text-muted-foreground">创建时间</p>
+                <p className="font-medium">{selectedDoc.createTime}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">状态</p>
+                <Badge className={getStatusConfig(selectedDoc.status).color}>
+                  {getStatusConfig(selectedDoc.status).label}
+                </Badge>
+              </div>
+              {'operator' in selectedDoc && (
                 <div>
-                  <h3 className="text-sm font-medium mb-2">关联订单</h3>
-                  <div className="space-y-2">
-                    {selectedDoc.orders.map((orderId: string) => (
-                      <div key={orderId} className="bg-muted/30 rounded p-2 text-sm font-mono">
-                        {orderId}
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-sm text-muted-foreground">操作人</p>
+                  <p className="font-medium">{selectedDoc.operator}</p>
                 </div>
               )}
-
-              <div className="flex gap-2 pt-4 border-t border-border">
-                <Button className="flex-1">
-                  <Printer className="w-4 h-4 mr-1" />
-                  打印单据
-                </Button>
-                <Button variant="outline" className="flex-1">
-                  <Download className="w-4 h-4 mr-1" />
-                  导出
-                </Button>
-              </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+      </div>
     </AppLayout>
   );
 }

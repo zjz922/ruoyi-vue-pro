@@ -3,7 +3,7 @@
  * 从抖店同步订单并进行对账
  */
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,20 +18,53 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
   AlertTriangle,
   CheckCircle2,
   RefreshCw,
   Download,
   Upload,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
+import { useShopSwitcher } from "@/components/ShopSwitcher";
+import { toast } from "sonner";
+
+// ============ 类型定义 ============
+
+interface SyncResult {
+  success: boolean;
+  newCount: number;
+  updatedCount: number;
+  totalCount: number;
+  syncLogId: number;
+}
+
+interface CompareDetail {
+  orderNo: string;
+  status: "matched" | "warning" | "error";
+  message: string;
+}
+
+interface CompareResult {
+  matched: number;
+  warning: number;
+  error: number;
+  details: CompareDetail[];
+}
+
+// ============ 空状态组件 ============
+function EmptyState({ message, icon: Icon = AlertCircle }: { message: string; icon?: React.ElementType }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+      <Icon className="h-8 w-8 mb-2 opacity-50" />
+      <p className="text-sm">{message}</p>
+    </div>
+  );
+}
 
 export default function OrderReconciliation() {
+  const { currentShopId } = useShopSwitcher();
+  const shopId = currentShopId ? Number(currentShopId) : 0;
   const [syncLoading, setSyncLoading] = useState(false);
   const [compareLoading, setCompareLoading] = useState(false);
   const [startDate, setStartDate] = useState(
@@ -42,52 +75,59 @@ export default function OrderReconciliation() {
   );
 
   // 同步结果状态
-  const [syncResult, setSyncResult] = useState<any>(null);
-  const [compareResult, setCompareResult] = useState<any>(null);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
 
   /**
    * 从抖店同步订单
    */
-  const handleSyncOrders = async () => {
+  const handleSyncOrders = useCallback(async () => {
+    if (!shopId) {
+      toast.error("请先选择店铺");
+      return;
+    }
+    
     setSyncLoading(true);
     try {
-      // TODO: 调用后端API
+      // TODO: 调用Java后端API
       // const response = await fetch('/api/v1/reconciliation/orders/sync', {
       //   method: 'POST',
       //   body: JSON.stringify({
+      //     shopId,
       //     startDate,
       //     endDate,
-      //     accessToken: 'xxx'
       //   })
       // });
       // const data = await response.json();
       // setSyncResult(data.data);
 
-      // 模拟数据
-      setSyncResult({
-        success: true,
-        newCount: 150,
-        updatedCount: 50,
-        totalCount: 200,
-        syncLogId: 1,
-      });
+      toast.info("订单同步功能待Java后端实现");
+      // 暂时不设置模拟数据
+      setSyncResult(null);
     } catch (error) {
       console.error("Failed to sync orders:", error);
+      toast.error("同步失败");
     } finally {
       setSyncLoading(false);
     }
-  };
+  }, [shopId, startDate, endDate]);
 
   /**
    * 执行订单对账
    */
-  const handleCompareOrders = async () => {
+  const handleCompareOrders = useCallback(async () => {
+    if (!shopId) {
+      toast.error("请先选择店铺");
+      return;
+    }
+    
     setCompareLoading(true);
     try {
-      // TODO: 调用后端API
+      // TODO: 调用Java后端API
       // const response = await fetch('/api/v1/reconciliation/orders/compare', {
       //   method: 'POST',
       //   body: JSON.stringify({
+      //     shopId,
       //     startDate,
       //     endDate
       //   })
@@ -95,35 +135,16 @@ export default function OrderReconciliation() {
       // const data = await response.json();
       // setCompareResult(data.data);
 
-      // 模拟数据
-      setCompareResult({
-        matched: 195,
-        warning: 3,
-        error: 2,
-        details: [
-          {
-            orderNo: "2025011400001",
-            status: "matched",
-            message: "订单数据一致",
-          },
-          {
-            orderNo: "2025011400002",
-            status: "warning",
-            message: "金额不匹配：本地100.00，抖店99.99",
-          },
-          {
-            orderNo: "2025011400003",
-            status: "error",
-            message: "本地订单在抖店中不存在",
-          },
-        ],
-      });
+      toast.info("订单对账功能待Java后端实现");
+      // 暂时不设置模拟数据
+      setCompareResult(null);
     } catch (error) {
       console.error("Failed to compare orders:", error);
+      toast.error("对账失败");
     } finally {
       setCompareLoading(false);
     }
-  };
+  }, [shopId, startDate, endDate]);
 
   return (
     <AppLayout>
@@ -170,7 +191,11 @@ export default function OrderReconciliation() {
                 disabled={syncLoading}
                 className="gap-2"
               >
-                <Upload className={`w-4 h-4 ${syncLoading ? "animate-spin" : ""}`} />
+                {syncLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
                 {syncLoading ? "同步中..." : "同步订单"}
               </Button>
               <Button
@@ -179,7 +204,11 @@ export default function OrderReconciliation() {
                 variant="outline"
                 className="gap-2"
               >
-                <RefreshCw className={`w-4 h-4 ${compareLoading ? "animate-spin" : ""}`} />
+                {compareLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
                 {compareLoading ? "对账中..." : "执行对账"}
               </Button>
             </div>
@@ -281,7 +310,7 @@ export default function OrderReconciliation() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {compareResult.details.map((detail: any, idx: number) => (
+                    {compareResult.details.map((detail, idx) => (
                       <TableRow key={idx}>
                         <TableCell className="font-mono text-sm">
                           {detail.orderNo}
@@ -321,10 +350,10 @@ export default function OrderReconciliation() {
             <CardTitle className="text-base">同步日志</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              <p>暂无同步日志</p>
-              <p className="text-xs mt-2">执行同步后将显示日志记录</p>
-            </div>
+            <EmptyState 
+              message="暂无同步日志，执行同步后将显示日志记录" 
+              icon={AlertCircle} 
+            />
           </CardContent>
         </Card>
       </div>

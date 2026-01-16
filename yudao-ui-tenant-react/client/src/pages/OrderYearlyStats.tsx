@@ -1,114 +1,101 @@
 import AppLayout from "@/components/AppLayout";
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useLocation } from 'wouter';
-import { Calendar, Download, RefreshCw, TrendingUp, TrendingDown, BarChart3, DollarSign, Percent, ArrowUpRight, ArrowDownRight, PieChart, Eye, Target, Award } from 'lucide-react';
+import { Calendar, Download, RefreshCw, TrendingUp, TrendingDown, BarChart3, DollarSign, Percent, ArrowUpRight, ArrowDownRight, PieChart, Eye, Target, Award, Loader2, AlertCircle } from 'lucide-react';
 import { ReconciliationIndicator } from '@/components/ReconciliationIndicator';
+import { useShopSwitcher } from "@/components/ShopSwitcher";
+import { toast } from "sonner";
+
+// ============ 类型定义 ============
+
+interface YearlyData {
+  year: string;
+  shipped: number;
+  sales: number;
+  refund: number;
+  express: number;
+  commission: number;
+  serviceFee: number;
+  cost: number;
+  promotion: number;
+  other: number;
+  insurance: number;
+  profit: number;
+  profitRate: string;
+  avgMonthSales: number;
+  avgMonthProfit: number;
+  topMonth: string;
+  lowMonth: string;
+}
+
+// ============ 空状态组件 ============
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+      <AlertCircle className="h-10 w-10 mb-3 opacity-50" />
+      <p className="text-sm">{message}</p>
+      <p className="text-xs mt-1">请确认Java后端服务已启动</p>
+    </div>
+  );
+}
+
+// ============ 加载状态组件 ============
+function LoadingState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-12">
+      <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-3" />
+      <p className="text-sm text-gray-500">正在加载数据...</p>
+    </div>
+  );
+}
 
 export default function OrderYearlyStats() {
+  const { currentShopId, shops } = useShopSwitcher();
+  const shopId = currentShopId ? Number(currentShopId) : 0;
   const [selectedShop, setSelectedShop] = useState('all');
   const [, setLocation] = useLocation();
 
-  // 跳转到按月汇总统计页面，传递年份参数
-  const goToMonthlyStats = (year: string) => {
-    setLocation(`/order-monthly?year=${year}`);
-  };
+  // 暂时使用空数据，等待Java后端实现
+  const isLoading = false;
+  const error = null;
+  const yearlyData: YearlyData[] = [];
 
-  // 模拟年度汇总数据
-  const yearlyData = [
-    { 
-      year: '2025', 
-      shipped: 145028, 
-      sales: 12502345.67, 
-      refund: 3121596.73, 
-      express: 464089.60, 
-      commission: 145028.52, 
-      serviceFee: 84756.61, 
-      cost: 4007640.82, 
-      promotion: 3411457.96, 
-      other: 8625.88, 
-      insurance: 62222.42, 
-      profit: 1195060.81, 
-      profitRate: '11.56%',
-      avgMonthSales: 1041862.14,
-      avgMonthProfit: 99588.40,
-      topMonth: '2025-12',
-      lowMonth: '2025-01'
-    },
-    { 
-      year: '2024', 
-      shipped: 132456, 
-      sales: 11234567.89, 
-      refund: 2808641.97, 
-      express: 423859.20, 
-      commission: 132456.78, 
-      serviceFee: 77345.67, 
-      cost: 3594861.73, 
-      promotion: 3067147.54, 
-      other: 7890.12, 
-      insurance: 56789.01, 
-      profit: 1065575.87, 
-      profitRate: '11.23%',
-      avgMonthSales: 936213.99,
-      avgMonthProfit: 88797.99,
-      topMonth: '2024-11',
-      lowMonth: '2024-02'
-    },
-    { 
-      year: '2023', 
-      shipped: 118234, 
-      sales: 9876543.21, 
-      refund: 2469135.80, 
-      express: 378348.80, 
-      commission: 118234.56, 
-      serviceFee: 69012.34, 
-      cost: 3160494.83, 
-      promotion: 2693254.29, 
-      other: 7012.34, 
-      insurance: 50678.90, 
-      profit: 929871.35, 
-      profitRate: '10.89%',
-      avgMonthSales: 823045.27,
-      avgMonthProfit: 77489.28,
-      topMonth: '2023-11',
-      lowMonth: '2023-01'
-    },
-    { 
-      year: '2022', 
-      shipped: 98765, 
-      sales: 8234567.89, 
-      refund: 2058641.97, 
-      express: 316048.00, 
-      commission: 98765.43, 
-      serviceFee: 57567.89, 
-      cost: 2635061.73, 
-      promotion: 2247996.04, 
-      other: 5890.12, 
-      insurance: 42345.67, 
-      profit: 771250.04, 
-      profitRate: '10.45%',
-      avgMonthSales: 686213.99,
-      avgMonthProfit: 64270.84,
-      topMonth: '2022-12',
-      lowMonth: '2022-02'
-    },
-  ];
+  // 跳转到按月汇总统计页面，传递年份参数
+  const goToMonthlyStats = useCallback((year: string) => {
+    setLocation(`/order-monthly?year=${year}`);
+  }, [setLocation]);
+
+  // 刷新数据
+  const handleRefresh = useCallback(() => {
+    toast.info("刷新功能待Java后端实现");
+  }, []);
+
+  // 导出Excel
+  const handleExport = useCallback(() => {
+    toast.info("导出功能待Java后端实现");
+  }, []);
 
   // 计算总计
-  const totalSummary = {
+  const totalSummary = useMemo(() => ({
     totalSales: yearlyData.reduce((sum, d) => sum + d.sales, 0),
     totalRefund: yearlyData.reduce((sum, d) => sum + d.refund, 0),
     totalProfit: yearlyData.reduce((sum, d) => sum + d.profit, 0),
     totalShipped: yearlyData.reduce((sum, d) => sum + d.shipped, 0),
     totalPromotion: yearlyData.reduce((sum, d) => sum + d.promotion, 0),
     totalCost: yearlyData.reduce((sum, d) => sum + d.cost, 0),
-  };
+  }), [yearlyData]);
 
   // 计算同比增长
-  const yoyGrowth = {
-    sales: ((yearlyData[0].sales - yearlyData[1].sales) / yearlyData[1].sales * 100).toFixed(1),
-    profit: ((yearlyData[0].profit - yearlyData[1].profit) / yearlyData[1].profit * 100).toFixed(1),
-    shipped: ((yearlyData[0].shipped - yearlyData[1].shipped) / yearlyData[1].shipped * 100).toFixed(1),
-  };
+  const yoyGrowth = useMemo(() => {
+    if (yearlyData.length < 2) {
+      return { sales: '0', profit: '0', shipped: '0' };
+    }
+    return {
+      sales: ((yearlyData[0].sales - yearlyData[1].sales) / yearlyData[1].sales * 100).toFixed(1),
+      profit: ((yearlyData[0].profit - yearlyData[1].profit) / yearlyData[1].profit * 100).toFixed(1),
+      shipped: ((yearlyData[0].shipped - yearlyData[1].shipped) / yearlyData[1].shipped * 100).toFixed(1),
+    };
+  }, [yearlyData]);
 
   return (
     <AppLayout>
@@ -127,15 +114,21 @@ export default function OrderYearlyStats() {
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">全部店铺</option>
-              <option value="shop1">滚杆官方旗舰店</option>
-              <option value="shop2">滚杆专卖店</option>
-              <option value="shop3">滚杆工厂店</option>
+              {shops.map((shop: { shopId: string; shopName: string }) => (
+                <option key={shop.shopId} value={shop.shopId}>{shop.shopName}</option>
+              ))}
             </select>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50">
+            <button 
+              onClick={handleRefresh}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+            >
               <RefreshCw className="w-4 h-4" />
               刷新数据
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+            <button 
+              onClick={handleExport}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+            >
               <Download className="w-4 h-4" />
               导出Excel
             </button>
@@ -144,316 +137,189 @@ export default function OrderYearlyStats() {
       </div>
 
       <div className="p-6">
-        {/* 勾稽关联状态 */}
-        <div className="mb-6">
-          <ReconciliationIndicator
-            moduleName="按年汇总统计"
-            reconciliationResult={{
-              id: "yearly-stats-reconciliation",
-              type: "yearly",
-              checkTime: new Date(),
-              status: "success",
-              items: [
-                {
-                  name: "总销售额",
-                  expected: totalSummary.totalSales,
-                  actual: totalSummary.totalSales,
-                  difference: 0,
-                  status: "success",
-                  tolerance: 0.01,
-                },
-                {
-                  name: "总发货数",
-                  expected: totalSummary.totalShipped,
-                  actual: totalSummary.totalShipped,
-                  difference: 0,
-                  status: "success",
-                  tolerance: 0,
-                },
-                {
-                  name: "总利润",
-                  expected: totalSummary.totalProfit,
-                  actual: totalSummary.totalProfit,
-                  difference: 0,
-                  status: "success",
-                  tolerance: 0.01,
-                },
-              ],
-              exceptionCount: 0,
-              summary: "与按月汇总统计模块数据一致",
-            }}
-            moduleRelations={[
-              {
-                sourceModule: "按月汇总统计",
-                targetModule: "按年汇总统计",
-                relationType: "bidirectional",
-                status: "success",
-                lastCheckTime: new Date(),
-              },
-            ]}
-          />
-        </div>
+        {/* 加载状态 */}
+        {isLoading && <LoadingState />}
 
-        {/* 同比增长卡片 */}
-        <div className="grid grid-cols-3 gap-6 mb-6">
-          <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">2025年销售额</div>
-                  <div className="text-2xl font-bold text-gray-900">¥{(yearlyData[0].sales / 10000).toFixed(2)}万</div>
-                </div>
-              </div>
-              <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium ${parseFloat(yoyGrowth.sales) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                {parseFloat(yoyGrowth.sales) >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                {yoyGrowth.sales}%
-              </div>
-            </div>
-            <div className="text-sm text-gray-500">
-              同比{parseFloat(yoyGrowth.sales) >= 0 ? '增长' : '下降'} {Math.abs(parseFloat(yoyGrowth.sales))}%，较2024年{parseFloat(yoyGrowth.sales) >= 0 ? '增加' : '减少'} ¥{Math.abs(yearlyData[0].sales - yearlyData[1].sales).toLocaleString()}
-            </div>
-          </div>
+        {/* 错误状态 */}
+        {error && !isLoading && (
+          <EmptyState message="数据加载失败，请检查网络连接" />
+        )}
 
-          <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">2025年利润</div>
-                  <div className="text-2xl font-bold text-gray-900">¥{(yearlyData[0].profit / 10000).toFixed(2)}万</div>
-                </div>
-              </div>
-              <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium ${parseFloat(yoyGrowth.profit) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                {parseFloat(yoyGrowth.profit) >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                {yoyGrowth.profit}%
-              </div>
+        {/* 有数据时显示内容 */}
+        {!isLoading && !error && (
+          <>
+            {/* 勾稽关联状态 */}
+            <div className="mb-6">
+              <ReconciliationIndicator
+                moduleName="按年汇总统计"
+                reconciliationResult={{
+                  id: "yearly-stats-reconciliation",
+                  type: "yearly",
+                  checkTime: new Date(),
+                  status: yearlyData.length > 0 ? "success" : "warning",
+                  items: [
+                    {
+                      name: "总销售额",
+                      expected: totalSummary.totalSales,
+                      actual: totalSummary.totalSales,
+                      difference: 0,
+                      status: "success",
+                      tolerance: 0.01,
+                    },
+                    {
+                      name: "总发货数",
+                      expected: totalSummary.totalShipped,
+                      actual: totalSummary.totalShipped,
+                      difference: 0,
+                      status: "success",
+                      tolerance: 0,
+                    },
+                    {
+                      name: "总利润",
+                      expected: totalSummary.totalProfit,
+                      actual: totalSummary.totalProfit,
+                      difference: 0,
+                      status: "success",
+                      tolerance: 0.01,
+                    },
+                  ],
+                  exceptionCount: 0,
+                  summary: yearlyData.length > 0 ? "与按月汇总统计模块数据一致" : "暂无数据",
+                }}
+                moduleRelations={[
+                  {
+                    sourceModule: "按月汇总统计",
+                    targetModule: "按年汇总统计",
+                    relationType: "bidirectional",
+                    status: "success",
+                    lastCheckTime: new Date(),
+                  },
+                ]}
+              />
             </div>
-            <div className="text-sm text-gray-500">
-              同比{parseFloat(yoyGrowth.profit) >= 0 ? '增长' : '下降'} {Math.abs(parseFloat(yoyGrowth.profit))}%，利润率 {yearlyData[0].profitRate}
-            </div>
-          </div>
 
-          <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                  <BarChart3 className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <div className="text-sm text-gray-500">2025年订单量</div>
-                  <div className="text-2xl font-bold text-gray-900">{yearlyData[0].shipped.toLocaleString()}</div>
-                </div>
-              </div>
-              <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium ${parseFloat(yoyGrowth.shipped) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                {parseFloat(yoyGrowth.shipped) >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                {yoyGrowth.shipped}%
-              </div>
-            </div>
-            <div className="text-sm text-gray-500">
-              同比{parseFloat(yoyGrowth.shipped) >= 0 ? '增长' : '下降'} {Math.abs(parseFloat(yoyGrowth.shipped))}%，月均 {Math.round(yearlyData[0].shipped / 12).toLocaleString()} 单
-            </div>
-          </div>
-        </div>
-
-        {/* 年度趋势图表 */}
-        <div className="grid grid-cols-2 gap-6 mb-6">
-          <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-medium text-gray-900">历年销售额对比</h3>
-              <DollarSign className="w-5 h-5 text-blue-500" />
-            </div>
-            <div className="space-y-4">
-              {yearlyData.map((item, index) => {
-                const width = (item.sales / Math.max(...yearlyData.map(d => d.sales))) * 100;
-                return (
-                  <div key={index}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-700">{item.year}年</span>
-                      <span className="text-sm text-gray-600">¥{(item.sales / 10000).toFixed(2)}万</span>
+            {yearlyData.length > 0 ? (
+              <>
+                {/* 同比增长卡片 */}
+                <div className="grid grid-cols-3 gap-6 mb-6">
+                  <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                          <DollarSign className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-500">{yearlyData[0]?.year}年销售额</div>
+                          <div className="text-2xl font-bold text-gray-900">¥{((yearlyData[0]?.sales || 0) / 10000).toFixed(2)}万</div>
+                        </div>
+                      </div>
+                      <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium ${parseFloat(yoyGrowth.sales) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {parseFloat(yoyGrowth.sales) >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                        {yoyGrowth.sales}%
+                      </div>
                     </div>
-                    <div className="h-8 bg-gray-100 rounded-lg overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg transition-all duration-500"
-                        style={{ width: `${width}%` }}
-                      />
+                    <div className="text-sm text-gray-500">
+                      同比{parseFloat(yoyGrowth.sales) >= 0 ? '增长' : '下降'} {Math.abs(parseFloat(yoyGrowth.sales))}%
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
 
-          <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-medium text-gray-900">历年利润率对比</h3>
-              <Percent className="w-5 h-5 text-green-500" />
-            </div>
-            <div className="space-y-4">
-              {yearlyData.map((item, index) => {
-                const rate = parseFloat(item.profitRate);
-                const width = (rate / 15) * 100;
-                return (
-                  <div key={index}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-700">{item.year}年</span>
-                      <span className="text-sm text-gray-600">{item.profitRate}</span>
+                  <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                          <TrendingUp className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-500">{yearlyData[0]?.year}年利润</div>
+                          <div className="text-2xl font-bold text-gray-900">¥{((yearlyData[0]?.profit || 0) / 10000).toFixed(2)}万</div>
+                        </div>
+                      </div>
+                      <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium ${parseFloat(yoyGrowth.profit) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {parseFloat(yoyGrowth.profit) >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                        {yoyGrowth.profit}%
+                      </div>
                     </div>
-                    <div className="h-8 bg-gray-100 rounded-lg overflow-hidden">
-                      <div 
-                        className={`h-full rounded-lg transition-all duration-500 ${rate >= 11 ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-yellow-500 to-yellow-600'}`}
-                        style={{ width: `${width}%` }}
-                      />
+                    <div className="text-sm text-gray-500">
+                      同比{parseFloat(yoyGrowth.profit) >= 0 ? '增长' : '下降'} {Math.abs(parseFloat(yoyGrowth.profit))}%，利润率 {yearlyData[0]?.profitRate}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
 
-        {/* 年度详情卡片 */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          {yearlyData.map((item, index) => (
-            <div key={index} className={`bg-white rounded-xl p-5 border shadow-sm ${index === 0 ? 'border-blue-200 ring-2 ring-blue-100' : 'border-gray-100'}`}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-gray-400" />
-                  <span className="font-semibold text-gray-900">{item.year}年</span>
-                </div>
-                {index === 0 && (
-                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">当前年</span>
-                )}
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">销售额</span>
-                  <span className="text-sm font-medium text-blue-600">¥{(item.sales / 10000).toFixed(0)}万</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">退款额</span>
-                  <span className="text-sm font-medium text-red-600">¥{(item.refund / 10000).toFixed(0)}万</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">利润</span>
-                  <span className="text-sm font-medium text-green-600">¥{(item.profit / 10000).toFixed(0)}万</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">利润率</span>
-                  <span className={`text-sm font-medium ${parseFloat(item.profitRate) >= 11 ? 'text-green-600' : 'text-yellow-600'}`}>{item.profitRate}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-500">订单量</span>
-                  <span className="text-sm font-medium">{item.shipped.toLocaleString()}</span>
-                </div>
-                <div className="pt-2 border-t border-gray-100">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-400">最佳月份</span>
-                    <span className="text-green-600">{item.topMonth}</span>
-                  </div>
-                  <div className="flex justify-between text-xs mt-1">
-                    <span className="text-gray-400">最低月份</span>
-                    <span className="text-red-600">{item.lowMonth}</span>
+                  <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                          <BarChart3 className="w-6 h-6 text-purple-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm text-gray-500">{yearlyData[0]?.year}年订单量</div>
+                          <div className="text-2xl font-bold text-gray-900">{(yearlyData[0]?.shipped || 0).toLocaleString()}</div>
+                        </div>
+                      </div>
+                      <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium ${parseFloat(yoyGrowth.shipped) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {parseFloat(yoyGrowth.shipped) >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                        {yoyGrowth.shipped}%
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      同比{parseFloat(yoyGrowth.shipped) >= 0 ? '增长' : '下降'} {Math.abs(parseFloat(yoyGrowth.shipped))}%，月均 {Math.round((yearlyData[0]?.shipped || 0) / 12).toLocaleString()} 单
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
 
-        {/* 年度数据表格 */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h3 className="font-medium text-gray-900">年度明细数据</h3>
-              <span className="text-sm text-gray-500">共 {yearlyData.length} 年</span>
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium whitespace-nowrap">年份</th>
-                  <th className="px-4 py-3 text-right font-medium whitespace-nowrap">发货订单</th>
-                  <th className="px-4 py-3 text-right font-medium whitespace-nowrap text-blue-600">销售额</th>
-                  <th className="px-4 py-3 text-right font-medium whitespace-nowrap text-red-600">退款额</th>
-                  <th className="px-4 py-3 text-right font-medium whitespace-nowrap">快递费</th>
-                  <th className="px-4 py-3 text-right font-medium whitespace-nowrap">达人佣金</th>
-                  <th className="px-4 py-3 text-right font-medium whitespace-nowrap">服务费</th>
-                  <th className="px-4 py-3 text-right font-medium whitespace-nowrap">商品成本</th>
-                  <th className="px-4 py-3 text-right font-medium whitespace-nowrap text-orange-600">推广费</th>
-                  <th className="px-4 py-3 text-right font-medium whitespace-nowrap text-green-600">年度利润</th>
-                  <th className="px-4 py-3 text-right font-medium whitespace-nowrap">利润率</th>
-                  <th className="px-4 py-3 text-right font-medium whitespace-nowrap">月均销售</th>
-                  <th className="px-4 py-3 text-right font-medium whitespace-nowrap">月均利润</th>
-                  <th className="px-4 py-3 text-center font-medium whitespace-nowrap">操作</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {yearlyData.map((row, index) => (
-                  <tr key={index} className={`hover:bg-gray-50 ${index === 0 ? 'bg-blue-50/30' : ''}`}>
-                    <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900">{row.year}年</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">{row.shipped.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap text-blue-600 font-medium">¥{(row.sales / 10000).toFixed(2)}万</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap text-red-600">¥{(row.refund / 10000).toFixed(2)}万</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">¥{(row.express / 10000).toFixed(2)}万</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">¥{(row.commission / 10000).toFixed(2)}万</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">¥{(row.serviceFee / 10000).toFixed(2)}万</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">¥{(row.cost / 10000).toFixed(2)}万</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap text-orange-600">¥{(row.promotion / 10000).toFixed(2)}万</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap text-green-600 font-medium">¥{(row.profit / 10000).toFixed(2)}万</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <span className={`px-2 py-0.5 rounded text-xs ${parseFloat(row.profitRate) >= 11 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {row.profitRate}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">¥{(row.avgMonthSales / 10000).toFixed(2)}万</td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">¥{(row.avgMonthProfit / 10000).toFixed(2)}万</td>
-                    <td className="px-4 py-3 text-center whitespace-nowrap">
-                      <button 
-                        className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
-                        onClick={() => goToMonthlyStats(row.year)}
-                      >
-                        <Eye className="w-4 h-4" />
-                        <span>明细</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-gray-50 font-medium">
-                <tr>
-                  <td className="px-4 py-3 whitespace-nowrap">历史合计</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">{totalSummary.totalShipped.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap text-blue-600">¥{(totalSummary.totalSales / 10000).toFixed(2)}万</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap text-red-600">¥{(totalSummary.totalRefund / 10000).toFixed(2)}万</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">-</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">-</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">-</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">¥{(totalSummary.totalCost / 10000).toFixed(2)}万</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap text-orange-600">¥{(totalSummary.totalPromotion / 10000).toFixed(2)}万</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap text-green-600">¥{(totalSummary.totalProfit / 10000).toFixed(2)}万</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">
-                    <span className="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700">
-                      {((totalSummary.totalProfit / totalSummary.totalSales) * 100).toFixed(2)}%
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">-</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">-</td>
-                  <td className="px-4 py-3 text-center whitespace-nowrap">-</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </div>
+                {/* 年度数据表格 */}
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-100">
+                    <h3 className="text-base font-semibold text-gray-900">年度数据明细</h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">年份</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">发货数</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">销售额</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">退款</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">成本</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">推广费</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">利润</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">利润率</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {yearlyData.map((row) => (
+                          <tr key={row.year} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.year}</td>
+                            <td className="px-4 py-3 text-sm text-right text-gray-600">{row.shipped.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm text-right text-gray-900 font-medium">¥{row.sales.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm text-right text-red-600">¥{row.refund.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm text-right text-gray-600">¥{row.cost.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm text-right text-orange-600">¥{row.promotion.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm text-right text-green-600 font-medium">¥{row.profit.toLocaleString()}</td>
+                            <td className="px-4 py-3 text-sm text-right text-blue-600">{row.profitRate}</td>
+                            <td className="px-4 py-3 text-center">
+                              <button
+                                onClick={() => goToMonthlyStats(row.year)}
+                                className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                              >
+                                <Eye className="w-3 h-3" />
+                                查看月度
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <EmptyState message="暂无年度汇总数据" />
+            )}
+          </>
+        )}
       </div>
-    </div>
+      </div>
     </AppLayout>
   );
 }

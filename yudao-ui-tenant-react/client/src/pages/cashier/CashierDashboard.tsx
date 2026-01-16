@@ -17,6 +17,8 @@ import {
   RefreshCw,
   ArrowRight,
   Clock,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import {
   LineChart,
@@ -31,8 +33,6 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import { baseData } from "@/data/reconciliationConfig";
-import { dailyStatsExtended } from "@/data/realOrderData";
 import { useShopSwitcher } from "@/components/ShopSwitcher";
 import {
   useDashboardOverview,
@@ -42,57 +42,75 @@ import {
 } from "@/hooks/useCashier";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import { useMemo, useCallback } from "react";
 
-// 资金流动趋势数据 - 勾稽订单统计数据
-const cashflowTrendData = dailyStatsExtended.slice(0, 7).map(item => ({
-  date: item.date.substring(5),  // 显示月-日
-  income: item.salesAmount,      // 勾稽：收入 = 销售额
-  expense: item.refundAmount + item.expressAmount + item.commissionAmount + item.serviceAmount + item.promotionAmount,  // 勾稽：支出 = 退款+快递+佣金+服务费+推广
-})).reverse();
+// ============ 类型定义 ============
 
-// 收入来源分布 - 勾稽订单统计数据
-const incomeSourceData = [
-  { name: "抹音订单", value: Math.round(baseData.amounts.confirmed / baseData.amounts.sales * 100), color: "#1890ff" },  // 勾稽：已确认金额占比
-  { name: "平台结算", value: Math.round(baseData.amounts.unconfirmed / baseData.amounts.sales * 100), color: "#52c41a" },  // 勾稽：未确认金额占比
-  { name: "退款返还", value: Math.round(baseData.amounts.refund / baseData.amounts.sales * 100), color: "#faad14" },  // 勾稽：退款额占比
-  { name: "其他收入", value: 1, color: "#722ed1" },
-];
+interface OverviewData {
+  todayIncome: number;
+  todayIncomeChange: number;
+  todayExpense: number;
+  todayExpenseChange: number;
+  totalBalance: number;
+  balanceChange: number;
+  reconciliationRate: number;
+}
 
-// 支出结构分布 - 勾稽订单统计数据
-const totalExpense = baseData.expenses.promotion + baseData.expenses.express + baseData.expenses.commission + baseData.expenses.service;
-const expenseStructureData = [
-  { name: "推广费用", value: Math.round(baseData.expenses.promotion / totalExpense * 100), color: "#ff4d4f" },  // 勾稽：推广费占比
-  { name: "物流费用", value: Math.round(baseData.expenses.express / totalExpense * 100), color: "#fa8c16" },  // 勾稽：快递费占比
-  { name: "达人佣金", value: Math.round(baseData.expenses.commission / totalExpense * 100), color: "#13c2c2" },  // 勾稽：达人佣金占比
-  { name: "服务费", value: Math.round(baseData.expenses.service / totalExpense * 100), color: "#eb2f96" },  // 勾稽：服务费占比
-];
+interface TrendItem {
+  date: string;
+  income: number;
+  expense: number;
+}
 
-// 预警数据
-const alertsData = [
-  {
-    id: 1,
-    title: "抖音账户未提现金额超限",
-    level: "high",
-    time: "2024-01-15 09:00",
-    duration: "3天",
-    description: "抖音支付账户尚有 ¥58,200 元超过7天未提现",
-  },
-  {
-    id: 2,
-    title: "退款率异常升高",
-    level: "medium",
-    time: "2024-01-15 10:30",
-    amount: "¥12,500",
-    description: '店铺"XX旗舰店"近7天退款率达4.2%，超过阈值3.5%',
-  },
-];
+interface IncomeSourceItem {
+  name: string;
+  value: number;
+  color: string;
+}
 
-// 待办任务
-const todoTasks = [
-  { id: 1, title: "核对差异订单", desc: "3笔待处理差异订单", action: "去处理" },
-  { id: 2, title: "生成资金日报", desc: "每日16:00前完成", action: "去生成" },
-  { id: 3, title: "提现操作", desc: "抖音账户余额 ¥58,200", action: "去操作" },
-];
+interface ExpenseStructureItem {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface AlertItem {
+  id: number;
+  title: string;
+  level: "high" | "medium" | "low";
+  time: string;
+  duration?: string;
+  amount?: string;
+  description: string;
+}
+
+interface TaskItem {
+  id: number;
+  title: string;
+  desc: string;
+  action: string;
+}
+
+// ============ 空状态组件 ============
+function EmptyState({ message, icon: Icon = AlertCircle }: { message: string; icon?: React.ElementType }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+      <Icon className="h-10 w-10 mb-3 opacity-50" />
+      <p className="text-sm">{message}</p>
+      <p className="text-xs mt-1">请确认Java后端服务已启动</p>
+    </div>
+  );
+}
+
+// ============ 加载状态组件 ============
+function LoadingState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-8">
+      <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+      <p className="text-sm text-muted-foreground">正在加载数据...</p>
+    </div>
+  );
+}
 
 export default function CashierDashboard() {
   const { currentShopId } = useShopSwitcher();
@@ -100,21 +118,117 @@ export default function CashierDashboard() {
   const [, setLocation] = useLocation();
   
   // API调用
-  const { data: overviewData, isLoading: overviewLoading, refetch: refetchOverview } = useDashboardOverview(shopId);
-  const { data: trendData, isLoading: trendLoading, refetch: refetchTrend } = useDashboardTrend(shopId, 7);
-  const { data: tasksData, isLoading: tasksLoading, refetch: refetchTasks } = useDashboardTasks(shopId);
+  const { 
+    data: overviewData, 
+    isLoading: overviewLoading, 
+    error: overviewError,
+    refetch: refetchOverview 
+  } = useDashboardOverview(shopId);
+  const { 
+    data: trendData, 
+    isLoading: trendLoading, 
+    refetch: refetchTrend 
+  } = useDashboardTrend(shopId, 7);
+  const { 
+    data: tasksData, 
+    isLoading: tasksLoading, 
+    refetch: refetchTasks 
+  } = useDashboardTasks(shopId);
   const refreshMutation = useDashboardRefresh();
+
+  // 定义API响应类型
+  type OverviewDataType = {
+    overview?: OverviewData;
+    incomeSource?: IncomeSourceItem[];
+    expenseStructure?: ExpenseStructureItem[];
+    alerts?: AlertItem[];
+  };
+
+  type TrendDataType = {
+    trend?: TrendItem[];
+  };
+
+  type TasksDataType = {
+    tasks?: TaskItem[];
+  };
+
+  // 类型断言
+  const typedOverviewData = overviewData as OverviewDataType | undefined;
+  const typedTrendData = trendData as TrendDataType | undefined;
+  const typedTasksData = tasksData as TasksDataType | undefined;
+
+  // 从API响应中提取数据
+  const overview = useMemo<OverviewData>(() => {
+    if (typedOverviewData?.overview) {
+      return typedOverviewData.overview;
+    }
+    return {
+      todayIncome: 0,
+      todayIncomeChange: 0,
+      todayExpense: 0,
+      todayExpenseChange: 0,
+      totalBalance: 0,
+      balanceChange: 0,
+      reconciliationRate: 0,
+    };
+  }, [typedOverviewData]);
+
+  const incomeSourceData = useMemo<IncomeSourceItem[]>(() => {
+    if (typedOverviewData?.incomeSource) {
+      return typedOverviewData.incomeSource;
+    }
+    return [];
+  }, [typedOverviewData]);
+
+  const expenseStructureData = useMemo<ExpenseStructureItem[]>(() => {
+    if (typedOverviewData?.expenseStructure) {
+      return typedOverviewData.expenseStructure;
+    }
+    return [];
+  }, [typedOverviewData]);
+
+  const alertsData = useMemo<AlertItem[]>(() => {
+    if (typedOverviewData?.alerts) {
+      return typedOverviewData.alerts;
+    }
+    return [];
+  }, [typedOverviewData]);
+
+  const cashflowTrendData = useMemo<TrendItem[]>(() => {
+    if (typedTrendData?.trend) {
+      return typedTrendData.trend;
+    }
+    return [];
+  }, [typedTrendData]);
+
+  const todoTasks = useMemo<TaskItem[]>(() => {
+    if (typedTasksData?.tasks) {
+      return typedTasksData.tasks;
+    }
+    return [];
+  }, [typedTasksData]);
+
+  // 检查是否有数据
+  const hasOverviewData = overview.todayIncome > 0 || overview.todayExpense > 0 || overview.totalBalance > 0;
+  const hasTrendData = cashflowTrendData.length > 0;
+  const hasIncomeSourceData = incomeSourceData.length > 0;
+  const hasExpenseStructureData = expenseStructureData.length > 0;
+  const hasAlertsData = alertsData.length > 0;
+  const hasTasksData = todoTasks.length > 0;
+
+  const isLoading = overviewLoading || trendLoading || tasksLoading;
   
   // 刷新数据
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     refreshMutation.mutate({ shopId, syncDoudian: true, syncQianchuan: true, syncJushuitan: true });
     refetchOverview();
     refetchTrend();
     refetchTasks();
-  };
+    toast.success("数据已刷新");
+  }, [refreshMutation, shopId, refetchOverview, refetchTrend, refetchTasks]);
   
   // 快捷操作处理
-  const handleQuickAction = (action: string) => {
+  const handleQuickAction = useCallback((action: string) => {
     switch (action) {
       case "快速录入":
         setLocation("/cashier/cashflow");
@@ -130,13 +244,13 @@ export default function CashierDashboard() {
         setLocation("/cashier/daily-report");
         break;
       case "查看预警":
-        toast.info("预警功能开发中");
+        setLocation("/cashier/alerts");
         break;
     }
-  };
+  }, [setLocation]);
   
   // 待办任务处理
-  const handleTaskAction = (task: { id: number; title: string; action: string }) => {
+  const handleTaskAction = useCallback((task: TaskItem) => {
     if (task.title.includes("差异")) {
       setLocation("/cashier/differences");
     } else if (task.title.includes("日报")) {
@@ -146,12 +260,21 @@ export default function CashierDashboard() {
     } else {
       toast.info(`执行任务: ${task.title}`);
     }
-  };
+  }, [setLocation]);
   
-  // 预警处理
-  const handleAlertAction = (alertId: number) => {
-    toast.info(`处理预警 #${alertId}`);
+  // 格式化金额
+  const formatCurrency = (value: number): string => {
+    if (Math.abs(value) >= 10000) {
+      return `¥${(value / 10000).toFixed(2)}万`;
+    }
+    return `¥${value.toLocaleString()}`;
   };
+
+  // 获取当前日期
+  const today = new Date();
+  const dateString = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+  const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+  const weekDay = weekDays[today.getDay()];
   
   return (
     <AppLayout>
@@ -160,15 +283,15 @@ export default function CashierDashboard() {
         <div>
           <h1 className="text-xl font-semibold text-gray-900">仪表盘</h1>
           <p className="text-sm text-gray-500 mt-1">
-            欢迎回来，张出纳！今天是2024年1月15日 周一
+            欢迎回来！今天是{dateString} {weekDay}
           </p>
         </div>
         <Button 
           className="gap-2" 
           onClick={handleRefresh}
-          disabled={refreshMutation.isPending}
+          disabled={refreshMutation.isPending || isLoading}
         >
-          <RefreshCw className={`w-4 h-4 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${(refreshMutation.isPending || isLoading) ? 'animate-spin' : ''}`} />
           {refreshMutation.isPending ? '刷新中...' : '刷新'}
         </Button>
       </div>
@@ -201,260 +324,304 @@ export default function CashierDashboard() {
         ))}
       </div>
 
-      {/* 统计卡片 */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-              <TrendingDown className="w-4 h-4" />
-              今日收入
-            </div>
-            <div className="text-2xl font-bold text-gray-900">¥15,000</div>
-            <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              相比昨日 +12.5%
-            </div>
-          </CardContent>
-        </Card>
+      {/* 加载状态 */}
+      {isLoading && <LoadingState />}
 
-        <Card className="border-l-4 border-l-red-500">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-              <TrendingUp className="w-4 h-4" />
-              今日支出
-            </div>
-            <div className="text-2xl font-bold text-gray-900">¥8,500</div>
-            <div className="text-xs text-red-600 mt-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              相比昨日 +3.2%
-            </div>
-          </CardContent>
-        </Card>
+      {/* 错误状态 */}
+      {overviewError && !isLoading && (
+        <EmptyState message="数据加载失败，请检查网络连接" icon={AlertCircle} />
+      )}
 
-        <Card className="border-l-4 border-l-blue-500">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-              <CreditCard className="w-4 h-4" />
-              当前总余额
-            </div>
-            <div className="text-2xl font-bold text-gray-900">¥186,500</div>
-            <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" />
-              相比昨日 +5.8%
-            </div>
-          </CardContent>
-        </Card>
+      {/* 有数据时显示内容 */}
+      {!isLoading && !overviewError && (
+        <>
+          {/* 统计卡片 */}
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            <Card className="border-l-4 border-l-green-500">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+                  <TrendingDown className="w-4 h-4" />
+                  今日收入
+                </div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {formatCurrency(overview.todayIncome)}
+                </div>
+                <div className={`text-xs mt-1 flex items-center gap-1 ${overview.todayIncomeChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {overview.todayIncomeChange >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  相比昨日 {overview.todayIncomeChange >= 0 ? '+' : ''}{overview.todayIncomeChange}%
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card className="border-l-4 border-l-purple-500">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-              <CheckCircle className="w-4 h-4" />
-              对账状态
-            </div>
-            <div className="text-2xl font-bold text-gray-900">92%</div>
-            <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
-              <CheckCircle className="w-3 h-3" />
-              今日已完成
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="border-l-4 border-l-red-500">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+                  <TrendingUp className="w-4 h-4" />
+                  今日支出
+                </div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {formatCurrency(overview.todayExpense)}
+                </div>
+                <div className={`text-xs mt-1 flex items-center gap-1 ${overview.todayExpenseChange >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  {overview.todayExpenseChange >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  相比昨日 {overview.todayExpenseChange >= 0 ? '+' : ''}{overview.todayExpenseChange}%
+                </div>
+              </CardContent>
+            </Card>
 
-      {/* 图表区域 */}
-      <div className="grid grid-cols-1 gap-6 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">最近7天资金流动趋势</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={cashflowTrendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" stroke="#8c8c8c" fontSize={12} />
-                  <YAxis stroke="#8c8c8c" fontSize={12} />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="income"
-                    name="收入"
-                    stroke="#52c41a"
-                    strokeWidth={2}
-                    dot={{ fill: "#52c41a" }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="expense"
-                    name="支出"
-                    stroke="#ff4d4f"
-                    strokeWidth={2}
-                    dot={{ fill: "#ff4d4f" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="border-l-4 border-l-blue-500">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+                  <CreditCard className="w-4 h-4" />
+                  当前总余额
+                </div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {formatCurrency(overview.totalBalance)}
+                </div>
+                <div className={`text-xs mt-1 flex items-center gap-1 ${overview.balanceChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {overview.balanceChange >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  相比昨日 {overview.balanceChange >= 0 ? '+' : ''}{overview.balanceChange}%
+                </div>
+              </CardContent>
+            </Card>
 
-      {/* 饼图区域 */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">收入来源分布</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={incomeSourceData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={2}
-                    dataKey="value"
-                    label={({ name, value }) => `${name} ${value}%`}
-                  >
-                    {incomeSourceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="border-l-4 border-l-purple-500">
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+                  <CheckCircle className="w-4 h-4" />
+                  对账状态
+                </div>
+                <div className="text-2xl font-bold text-gray-900">{overview.reconciliationRate}%</div>
+                <div className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  今日已完成
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">支出结构分布</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={expenseStructureData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={2}
-                    dataKey="value"
-                    label={({ name, value }) => `${name} ${value}%`}
-                  >
-                    {expenseStructureData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 预警与待办 */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* 预警与提醒 */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Bell className="w-4 h-4 text-yellow-500" />
-              预警与提醒
-            </CardTitle>
-            <Button variant="ghost" size="sm" className="text-primary">
-              查看全部
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {alertsData.map((alert) => (
-              <div
-                key={alert.id}
-                className="p-4 bg-gray-50 rounded-lg border-l-4 border-l-red-500"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900">
-                      {alert.title}
-                    </span>
-                    <Badge
-                      variant={
-                        alert.level === "high" ? "destructive" : "secondary"
-                      }
-                      className="text-xs"
-                    >
-                      {alert.level === "high" ? "高危" : "中危"}
-                    </Badge>
+          {/* 图表区域 */}
+          <div className="grid grid-cols-1 gap-6 mb-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">最近7天资金流动趋势</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {hasTrendData ? (
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={cashflowTrendData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="date" stroke="#8c8c8c" fontSize={12} />
+                        <YAxis stroke="#8c8c8c" fontSize={12} />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="income"
+                          name="收入"
+                          stroke="#52c41a"
+                          strokeWidth={2}
+                          dot={{ fill: "#52c41a" }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="expense"
+                          name="支出"
+                          stroke="#ff4d4f"
+                          strokeWidth={2}
+                          dot={{ fill: "#ff4d4f" }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
-                  <AlertTriangle
-                    className={`w-4 h-4 ${
-                      alert.level === "high"
-                        ? "text-red-500"
-                        : "text-yellow-500"
-                    }`}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mb-2">
-                  触发时间: {alert.time} •{" "}
-                  {alert.duration
-                    ? `持续: ${alert.duration}`
-                    : `影响金额: ${alert.amount}`}
-                </p>
-                <p className="text-sm text-gray-600 mb-3">{alert.description}</p>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="destructive">
-                    立即处理
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    标记已读
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+                ) : (
+                  <EmptyState message="暂无趋势数据" icon={TrendingUp} />
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* 待办任务 */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="w-4 h-4 text-blue-500" />
-              待办任务
-            </CardTitle>
-            <Button variant="ghost" size="sm" className="text-primary">
-              全部完成
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {todoTasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-blue-500" />
-                  <div>
-                    <div className="font-medium text-gray-900 text-sm">
-                      {task.title}
-                    </div>
-                    <div className="text-xs text-gray-500">{task.desc}</div>
+          {/* 饼图区域 */}
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">收入来源分布</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {hasIncomeSourceData ? (
+                  <div className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={incomeSourceData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={90}
+                          paddingAngle={2}
+                          dataKey="value"
+                          label={({ name, value }) => `${name} ${value}%`}
+                        >
+                          {incomeSourceData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                </div>
-                <Button size="sm" variant="outline" className="gap-1">
-                  {task.action}
-                  <ArrowRight className="w-3 h-3" />
+                ) : (
+                  <EmptyState message="暂无收入来源数据" icon={DollarSign} />
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">支出结构分布</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {hasExpenseStructureData ? (
+                  <div className="h-[250px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={expenseStructureData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={90}
+                          paddingAngle={2}
+                          dataKey="value"
+                          label={({ name, value }) => `${name} ${value}%`}
+                        >
+                          {expenseStructureData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <EmptyState message="暂无支出结构数据" icon={CreditCard} />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 预警与待办 */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* 预警与提醒 */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-yellow-500" />
+                  预警与提醒
+                </CardTitle>
+                <Button variant="ghost" size="sm" className="text-primary" onClick={() => setLocation("/cashier/alerts")}>
+                  查看全部
                 </Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {hasAlertsData ? (
+                  alertsData.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className={`p-4 bg-gray-50 rounded-lg border-l-4 ${alert.level === 'high' ? 'border-l-red-500' : alert.level === 'medium' ? 'border-l-yellow-500' : 'border-l-blue-500'}`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900">
+                            {alert.title}
+                          </span>
+                          <Badge
+                            variant={
+                              alert.level === "high" ? "destructive" : "secondary"
+                            }
+                            className="text-xs"
+                          >
+                            {alert.level === "high" ? "高危" : alert.level === "medium" ? "中危" : "低危"}
+                          </Badge>
+                        </div>
+                        <AlertTriangle
+                          className={`w-4 h-4 ${
+                            alert.level === "high"
+                              ? "text-red-500"
+                              : "text-yellow-500"
+                          }`}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mb-2">
+                        触发时间: {alert.time} •{" "}
+                        {alert.duration
+                          ? `持续: ${alert.duration}`
+                          : alert.amount ? `影响金额: ${alert.amount}` : ''}
+                      </p>
+                      <p className="text-sm text-gray-600 mb-3">{alert.description}</p>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="destructive">
+                          立即处理
+                        </Button>
+                        <Button size="sm" variant="outline">
+                          标记已读
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState message="暂无预警信息" icon={Bell} />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 待办任务 */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-blue-500" />
+                  待办任务
+                </CardTitle>
+                <Button variant="ghost" size="sm" className="text-primary">
+                  全部完成
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {hasTasksData ? (
+                  todoTasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        <div>
+                          <div className="font-medium text-gray-900 text-sm">
+                            {task.title}
+                          </div>
+                          <div className="text-xs text-gray-500">{task.desc}</div>
+                        </div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="gap-1"
+                        onClick={() => handleTaskAction(task)}
+                      >
+                        {task.action}
+                        <ArrowRight className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState message="暂无待办任务" icon={Clock} />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
     </AppLayout>
   );
 }
