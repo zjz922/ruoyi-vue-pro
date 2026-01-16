@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.finance.dal.mysql.ReconciliationLogMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.iocoder.yudao.module.finance.dal.dataobject.ReconciliationLogDO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="shop_id" property="shopId"/>
+        <result column="reconciliation_no" property="reconciliationNo"/>
+        <result column="reconciliation_type" property="reconciliationType"/>
+        <result column="reconciliation_date" property="reconciliationDate"/>
+        <result column="start_time" property="startTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="total_count" property="totalCount"/>
+        <result column="success_count" property="successCount"/>
+        <result column="fail_count" property="failCount"/>
+        <result column="exception_count" property="exceptionCount"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="success_amount" property="successAmount"/>
+        <result column="diff_amount" property="diffAmount"/>
+        <result column="status" property="status"/>
+        <result column="result_summary" property="resultSummary"/>
+        <result column="error_message" property="errorMessage"/>
+        <result column="operator" property="operator"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, shop_id, reconciliation_no, reconciliation_type, reconciliation_date,
+        start_time, end_time, total_count, success_count, fail_count, exception_count,
+        total_amount, success_amount, diff_amount, status, result_summary, error_message,
+        operator, creator, create_time, updater, update_time, deleted
+    </sql>
+
+    <!-- 根据对账编号查询 -->
+    <select id="selectByReconciliationNo" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_reconciliation_log
+        WHERE reconciliation_no = #{reconciliationNo} AND deleted = 0
+    </select>
+
+    <!-- 分页查询 -->
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_reconciliation_log
+        WHERE deleted = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        <if test="reconciliationType != null and reconciliationType != ''">
+            AND reconciliation_type = #{reconciliationType}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="startDate != null">
+            AND reconciliation_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND reconciliation_date &lt;= #{endDate}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询最近一次对账记录 -->
+    <select id="selectLatest" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_reconciliation_log
+        WHERE deleted = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        <if test="reconciliationType != null and reconciliationType != ''">
+            AND reconciliation_type = #{reconciliationType}
+        </if>
+        ORDER BY create_time DESC
+        LIMIT 1
+    </select>
+
+    <!-- 统计对账结果 -->
+    <select id="countByStatus" resultType="java.util.Map">
+        SELECT 
+            status,
+            COUNT(*) as count,
+            SUM(total_count) as total_count,
+            SUM(success_count) as success_count,
+            SUM(fail_count) as fail_count,
+            SUM(exception_count) as exception_count
+        FROM finance_reconciliation_log
+        WHERE deleted = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        <if test="startDate != null">
+            AND reconciliation_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND reconciliation_date &lt;= #{endDate}
+        </if>
+        GROUP BY status
+    </select>
+
+    <!-- 更新对账状态 -->
+    <update id="updateStatus">
+        UPDATE finance_reconciliation_log
+        SET status = #{status},
+            end_time = NOW(),
+            result_summary = #{resultSummary},
+            error_message = #{errorMessage},
+            updater = #{updater},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 更新对账结果 -->
+    <update id="updateResult">
+        UPDATE finance_reconciliation_log
+        SET total_count = #{totalCount},
+            success_count = #{successCount},
+            fail_count = #{failCount},
+            exception_count = #{exceptionCount},
+            total_amount = #{totalAmount},
+            success_amount = #{successAmount},
+            diff_amount = #{diffAmount},
+            status = #{status},
+            result_summary = #{resultSummary},
+            end_time = NOW(),
+            updater = #{updater},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>

@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yudao.module.finance.mapper.DailyStatsMapper">
+
+    <resultMap id="DailyStatsResultMap" type="com.yudao.module.finance.entity.DailyStatsDO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="stats_date" property="statsDate"/>
+        <result column="shipment_count" property="shipmentCount"/>
+        <result column="sales_amount" property="salesAmount"/>
+        <result column="refund_amount" property="refundAmount"/>
+        <result column="express_charge" property="expressCharge"/>
+        <result column="influencer_commission" property="influencerCommission"/>
+        <result column="service_fee" property="serviceFee"/>
+        <result column="product_cost" property="productCost"/>
+        <result column="promotion_fee" property="promotionFee"/>
+        <result column="insurance_fee" property="insuranceFee"/>
+        <result column="other_fee" property="otherFee"/>
+        <result column="compensation" property="compensation"/>
+        <result column="estimated_profit" property="estimatedProfit"/>
+        <result column="profit_rate" property="profitRate"/>
+        <result column="data_source" property="dataSource"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="columns">
+        id, tenant_id, stats_date, shipment_count, sales_amount, refund_amount,
+        express_charge, influencer_commission, service_fee, product_cost,
+        promotion_fee, insurance_fee, other_fee, compensation, estimated_profit,
+        profit_rate, data_source, remark, create_time, update_time
+    </sql>
+
+    <select id="selectDailyStatsPage" resultMap="DailyStatsResultMap">
+        SELECT <include refid="columns"/>
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        <if test="startDate != null">
+            AND stats_date >= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND stats_date &lt;= #{endDate}
+        </if>
+        ORDER BY stats_date DESC
+    </select>
+
+    <select id="selectByDateRange" resultMap="DailyStatsResultMap">
+        SELECT <include refid="columns"/>
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND stats_date >= #{startDate}
+        AND stats_date &lt;= #{endDate}
+        ORDER BY stats_date DESC
+    </select>
+
+    <select id="selectByDate" resultMap="DailyStatsResultMap">
+        SELECT <include refid="columns"/>
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND stats_date = #{statsDate}
+        LIMIT 1
+    </select>
+
+    <select id="selectMonthlyStats" resultType="java.util.Map">
+        SELECT
+            DATE_FORMAT(stats_date, '%Y-%m-%d') as date,
+            SUM(shipment_count) as shipmentCount,
+            SUM(sales_amount) as salesAmount,
+            SUM(refund_amount) as refundAmount,
+            SUM(express_charge) as expressCharge,
+            SUM(influencer_commission) as influencerCommission,
+            SUM(service_fee) as serviceFee,
+            SUM(product_cost) as productCost,
+            SUM(promotion_fee) as promotionFee,
+            SUM(insurance_fee) as insuranceFee,
+            SUM(other_fee) as otherFee,
+            SUM(compensation) as compensation,
+            SUM(estimated_profit) as estimatedProfit,
+            ROUND(SUM(estimated_profit) / SUM(sales_amount) * 100, 2) as profitRate
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND YEAR(stats_date) = #{year}
+        AND MONTH(stats_date) = #{month}
+        GROUP BY DATE_FORMAT(stats_date, '%Y-%m-%d')
+        ORDER BY stats_date DESC
+    </select>
+
+    <select id="selectYearlyStats" resultType="java.util.Map">
+        SELECT
+            SUM(shipment_count) as shipmentCount,
+            SUM(sales_amount) as salesAmount,
+            SUM(refund_amount) as refundAmount,
+            SUM(express_charge) as expressCharge,
+            SUM(influencer_commission) as influencerCommission,
+            SUM(service_fee) as serviceFee,
+            SUM(product_cost) as productCost,
+            SUM(promotion_fee) as promotionFee,
+            SUM(insurance_fee) as insuranceFee,
+            SUM(other_fee) as otherFee,
+            SUM(compensation) as compensation,
+            SUM(estimated_profit) as estimatedProfit,
+            ROUND(SUM(estimated_profit) / SUM(sales_amount) * 100, 2) as profitRate
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND YEAR(stats_date) = #{year}
+    </select>
+
+    <select id="selectLast30Days" resultMap="DailyStatsResultMap">
+        SELECT <include refid="columns"/>
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND stats_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+        ORDER BY stats_date DESC
+    </select>
+
+    <select id="selectLast90Days" resultMap="DailyStatsResultMap">
+        SELECT <include refid="columns"/>
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND stats_date >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+        ORDER BY stats_date DESC
+    </select>
+
+    <select id="selectLastYear" resultMap="DailyStatsResultMap">
+        SELECT <include refid="columns"/>
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND stats_date >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)
+        ORDER BY stats_date DESC
+    </select>
+
+    <select id="selectProfitTrend" resultType="java.util.Map">
+        SELECT
+            stats_date as date,
+            estimated_profit as profit,
+            profit_rate as profitRate
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND stats_date >= #{startDate}
+        AND stats_date &lt;= #{endDate}
+        ORDER BY stats_date ASC
+    </select>
+
+    <select id="selectExpenseDistribution" resultType="java.util.Map">
+        SELECT
+            'expressCharge' as expenseType,
+            SUM(express_charge) as amount
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND stats_date >= #{startDate}
+        AND stats_date &lt;= #{endDate}
+        UNION ALL
+        SELECT 'influencerCommission', SUM(influencer_commission)
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND stats_date >= #{startDate}
+        AND stats_date &lt;= #{endDate}
+        UNION ALL
+        SELECT 'serviceFee', SUM(service_fee)
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND stats_date >= #{startDate}
+        AND stats_date &lt;= #{endDate}
+        UNION ALL
+        SELECT 'promotionFee', SUM(promotion_fee)
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND stats_date >= #{startDate}
+        AND stats_date &lt;= #{endDate}
+    </select>
+
+    <select id="selectCountByDate" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND stats_date = #{statsDate}
+    </select>
+
+    <delete id="deleteByDate">
+        DELETE FROM finance_daily_stats
+        WHERE tenant_id = #{tenantId}
+        AND stats_date = #{statsDate}
+    </delete>
+
+</mapper>

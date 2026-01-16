@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.finance.dal.mysql.DailyStatMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.iocoder.yudao.module.finance.dal.dataobject.DailyStatDO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="shop_id" property="shopId"/>
+        <result column="stat_date" property="statDate"/>
+        <result column="stat_type" property="statType"/>
+        <result column="order_count" property="orderCount"/>
+        <result column="order_amount" property="orderAmount"/>
+        <result column="paid_order_count" property="paidOrderCount"/>
+        <result column="paid_amount" property="paidAmount"/>
+        <result column="refund_count" property="refundCount"/>
+        <result column="refund_amount" property="refundAmount"/>
+        <result column="total_income" property="totalIncome"/>
+        <result column="product_income" property="productIncome"/>
+        <result column="service_income" property="serviceIncome"/>
+        <result column="other_income" property="otherIncome"/>
+        <result column="total_expense" property="totalExpense"/>
+        <result column="product_cost" property="productCost"/>
+        <result column="logistics_cost" property="logisticsCost"/>
+        <result column="platform_fee" property="platformFee"/>
+        <result column="promotion_cost" property="promotionCost"/>
+        <result column="other_expense" property="otherExpense"/>
+        <result column="gross_profit" property="grossProfit"/>
+        <result column="gross_profit_rate" property="grossProfitRate"/>
+        <result column="net_profit" property="netProfit"/>
+        <result column="net_profit_rate" property="netProfitRate"/>
+        <result column="customer_count" property="customerCount"/>
+        <result column="new_customer_count" property="newCustomerCount"/>
+        <result column="repeat_customer_count" property="repeatCustomerCount"/>
+        <result column="avg_order_amount" property="avgOrderAmount"/>
+        <result column="product_count" property="productCount"/>
+        <result column="sku_count" property="skuCount"/>
+        <result column="extra_data" property="extraData"/>
+        <result column="stat_time" property="statTime"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, shop_id, stat_date, stat_type, order_count, order_amount,
+        paid_order_count, paid_amount, refund_count, refund_amount,
+        total_income, product_income, service_income, other_income,
+        total_expense, product_cost, logistics_cost, platform_fee, promotion_cost, other_expense,
+        gross_profit, gross_profit_rate, net_profit, net_profit_rate,
+        customer_count, new_customer_count, repeat_customer_count, avg_order_amount,
+        product_count, sku_count, extra_data, stat_time,
+        creator, create_time, updater, update_time, deleted
+    </sql>
+
+    <!-- 根据日期和店铺查询 -->
+    <select id="selectByDateAndShop" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_daily_stat
+        WHERE shop_id = #{shopId} 
+          AND stat_date = #{statDate}
+          AND stat_type = #{statType}
+          AND deleted = 0
+    </select>
+
+    <!-- 查询日期范围内的统计 -->
+    <select id="selectByDateRange" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_daily_stat
+        WHERE deleted = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        <if test="statType != null and statType != ''">
+            AND stat_type = #{statType}
+        </if>
+        AND stat_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY stat_date ASC
+    </select>
+
+    <!-- 汇总统计 -->
+    <select id="selectSummary" resultType="java.util.Map">
+        SELECT 
+            SUM(order_count) as total_order_count,
+            SUM(order_amount) as total_order_amount,
+            SUM(paid_order_count) as total_paid_order_count,
+            SUM(paid_amount) as total_paid_amount,
+            SUM(refund_count) as total_refund_count,
+            SUM(refund_amount) as total_refund_amount,
+            SUM(total_income) as total_income,
+            SUM(total_expense) as total_expense,
+            SUM(gross_profit) as total_gross_profit,
+            SUM(net_profit) as total_net_profit,
+            AVG(gross_profit_rate) as avg_gross_profit_rate,
+            AVG(net_profit_rate) as avg_net_profit_rate,
+            SUM(customer_count) as total_customer_count,
+            SUM(new_customer_count) as total_new_customer_count,
+            AVG(avg_order_amount) as avg_order_amount
+        FROM finance_daily_stat
+        WHERE deleted = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        <if test="statType != null and statType != ''">
+            AND stat_type = #{statType}
+        </if>
+        AND stat_date BETWEEN #{startDate} AND #{endDate}
+    </select>
+
+    <!-- 按月汇总 -->
+    <select id="selectMonthSummary" resultType="java.util.Map">
+        SELECT 
+            DATE_FORMAT(stat_date, '%Y-%m') as month,
+            SUM(order_count) as order_count,
+            SUM(order_amount) as order_amount,
+            SUM(total_income) as total_income,
+            SUM(total_expense) as total_expense,
+            SUM(gross_profit) as gross_profit,
+            SUM(net_profit) as net_profit,
+            AVG(gross_profit_rate) as gross_profit_rate,
+            AVG(net_profit_rate) as net_profit_rate
+        FROM finance_daily_stat
+        WHERE deleted = 0
+          AND stat_type = 'DAILY'
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        AND stat_date BETWEEN #{startDate} AND #{endDate}
+        GROUP BY DATE_FORMAT(stat_date, '%Y-%m')
+        ORDER BY month ASC
+    </select>
+
+    <!-- 对比统计（同比/环比） -->
+    <select id="selectComparison" resultType="java.util.Map">
+        SELECT 
+            'current' as period,
+            SUM(order_count) as order_count,
+            SUM(order_amount) as order_amount,
+            SUM(total_income) as total_income,
+            SUM(total_expense) as total_expense,
+            SUM(gross_profit) as gross_profit,
+            SUM(net_profit) as net_profit
+        FROM finance_daily_stat
+        WHERE deleted = 0 AND shop_id = #{shopId}
+          AND stat_date BETWEEN #{currentStartDate} AND #{currentEndDate}
+        UNION ALL
+        SELECT 
+            'previous' as period,
+            SUM(order_count) as order_count,
+            SUM(order_amount) as order_amount,
+            SUM(total_income) as total_income,
+            SUM(total_expense) as total_expense,
+            SUM(gross_profit) as gross_profit,
+            SUM(net_profit) as net_profit
+        FROM finance_daily_stat
+        WHERE deleted = 0 AND shop_id = #{shopId}
+          AND stat_date BETWEEN #{previousStartDate} AND #{previousEndDate}
+    </select>
+
+    <!-- 插入或更新 -->
+    <insert id="insertOrUpdate">
+        INSERT INTO finance_daily_stat (
+            tenant_id, shop_id, stat_date, stat_type,
+            order_count, order_amount, paid_order_count, paid_amount,
+            refund_count, refund_amount, total_income, product_income,
+            service_income, other_income, total_expense, product_cost,
+            logistics_cost, platform_fee, promotion_cost, other_expense,
+            gross_profit, gross_profit_rate, net_profit, net_profit_rate,
+            customer_count, new_customer_count, repeat_customer_count, avg_order_amount,
+            product_count, sku_count, extra_data, stat_time, creator, create_time
+        ) VALUES (
+            #{tenantId}, #{shopId}, #{statDate}, #{statType},
+            #{orderCount}, #{orderAmount}, #{paidOrderCount}, #{paidAmount},
+            #{refundCount}, #{refundAmount}, #{totalIncome}, #{productIncome},
+            #{serviceIncome}, #{otherIncome}, #{totalExpense}, #{productCost},
+            #{logisticsCost}, #{platformFee}, #{promotionCost}, #{otherExpense},
+            #{grossProfit}, #{grossProfitRate}, #{netProfit}, #{netProfitRate},
+            #{customerCount}, #{newCustomerCount}, #{repeatCustomerCount}, #{avgOrderAmount},
+            #{productCount}, #{skuCount}, #{extraData}, #{statTime}, #{creator}, NOW()
+        )
+        ON DUPLICATE KEY UPDATE
+            order_count = VALUES(order_count),
+            order_amount = VALUES(order_amount),
+            paid_order_count = VALUES(paid_order_count),
+            paid_amount = VALUES(paid_amount),
+            refund_count = VALUES(refund_count),
+            refund_amount = VALUES(refund_amount),
+            total_income = VALUES(total_income),
+            product_income = VALUES(product_income),
+            service_income = VALUES(service_income),
+            other_income = VALUES(other_income),
+            total_expense = VALUES(total_expense),
+            product_cost = VALUES(product_cost),
+            logistics_cost = VALUES(logistics_cost),
+            platform_fee = VALUES(platform_fee),
+            promotion_cost = VALUES(promotion_cost),
+            other_expense = VALUES(other_expense),
+            gross_profit = VALUES(gross_profit),
+            gross_profit_rate = VALUES(gross_profit_rate),
+            net_profit = VALUES(net_profit),
+            net_profit_rate = VALUES(net_profit_rate),
+            customer_count = VALUES(customer_count),
+            new_customer_count = VALUES(new_customer_count),
+            repeat_customer_count = VALUES(repeat_customer_count),
+            avg_order_amount = VALUES(avg_order_amount),
+            product_count = VALUES(product_count),
+            sku_count = VALUES(sku_count),
+            extra_data = VALUES(extra_data),
+            stat_time = VALUES(stat_time),
+            updater = #{updater},
+            update_time = NOW()
+    </insert>
+
+</mapper>

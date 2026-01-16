@@ -1,0 +1,147 @@
+-- ========================================
+-- 财务管理模块 - 数据库表定义
+-- ========================================
+
+-- 订单表
+CREATE TABLE IF NOT EXISTS `finance_orders` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '订单ID',
+  `tenant_id` bigint NOT NULL COMMENT '租户ID',
+  `shop_id` bigint NOT NULL COMMENT '店铺ID',
+  `order_no` varchar(64) NOT NULL COMMENT '订单号',
+  `product_title` varchar(255) NOT NULL COMMENT '商品标题',
+  `quantity` int NOT NULL COMMENT '商品数量',
+  `unit_price` decimal(19,2) NOT NULL COMMENT '单价',
+  `pay_amount` decimal(19,2) NOT NULL COMMENT '支付金额',
+  `status` varchar(32) COMMENT '订单状态',
+  `receiver_name` varchar(64) COMMENT '收货人',
+  `receiver_address` varchar(255) COMMENT '收货地址',
+  `receiver_phone` varchar(32) COMMENT '收货电话',
+  `order_create_time` datetime COMMENT '订单创建时间',
+  `order_update_time` datetime COMMENT '订单更新时间',
+  `platform` varchar(32) COMMENT '来源平台',
+  `platform_order_id` varchar(64) COMMENT '平台订单ID',
+  `remark` varchar(500) COMMENT '备注',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` varchar(64) COMMENT '创建者',
+  `update_by` varchar(64) COMMENT '更新者',
+  `del_flag` tinyint NOT NULL DEFAULT 0 COMMENT '删除标志(0未删除,1已删除)',
+  PRIMARY KEY (`id`),
+  KEY `idx_tenant_id` (`tenant_id`),
+  KEY `idx_shop_id` (`shop_id`),
+  KEY `idx_order_no` (`order_no`),
+  KEY `idx_status` (`status`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='订单表';
+
+-- 资金流水表
+CREATE TABLE IF NOT EXISTS `finance_cashflow` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '资金流水ID',
+  `tenant_id` bigint NOT NULL COMMENT '租户ID',
+  `shop_id` bigint NOT NULL COMMENT '店铺ID',
+  `flow_no` varchar(64) NOT NULL COMMENT '流水号',
+  `trade_type` varchar(32) NOT NULL COMMENT '交易类型',
+  `amount` decimal(19,2) NOT NULL COMMENT '金额',
+  `balance` decimal(19,2) COMMENT '余额',
+  `channel` varchar(32) COMMENT '渠道',
+  `counterparty` varchar(255) COMMENT '交易对方',
+  `description` varchar(500) COMMENT '交易描述',
+  `trade_time` datetime NOT NULL COMMENT '交易时间',
+  `confirm_status` varchar(32) COMMENT '确认状态',
+  `confirm_time` datetime COMMENT '确认时间',
+  `reconciliation_status` varchar(32) COMMENT '对账状态',
+  `platform` varchar(32) COMMENT '来源平台',
+  `platform_flow_id` varchar(64) COMMENT '平台流水ID',
+  `remark` varchar(500) COMMENT '备注',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` varchar(64) COMMENT '创建者',
+  `update_by` varchar(64) COMMENT '更新者',
+  `del_flag` tinyint NOT NULL DEFAULT 0 COMMENT '删除标志(0未删除,1已删除)',
+  PRIMARY KEY (`id`),
+  KEY `idx_tenant_id` (`tenant_id`),
+  KEY `idx_shop_id` (`shop_id`),
+  KEY `idx_flow_no` (`flow_no`),
+  KEY `idx_trade_type` (`trade_type`),
+  KEY `idx_trade_time` (`trade_time`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='资金流水表';
+
+-- 商品成本表
+CREATE TABLE IF NOT EXISTS `finance_product_cost` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '商品成本ID',
+  `tenant_id` bigint NOT NULL COMMENT '租户ID',
+  `shop_id` bigint NOT NULL COMMENT '店铺ID',
+  `product_id` varchar(64) NOT NULL COMMENT '商品ID',
+  `product_name` varchar(255) NOT NULL COMMENT '商品名称',
+  `sku_id` varchar(64) COMMENT 'SKU ID',
+  `cost` decimal(19,2) NOT NULL COMMENT '成本价',
+  `sale_price` decimal(19,2) COMMENT '销售价',
+  `stock` int COMMENT '库存数量',
+  `cost_method` varchar(32) COMMENT '成本计算方法',
+  `cost_update_time` bigint COMMENT '成本更新时间',
+  `platform` varchar(32) COMMENT '来源平台',
+  `platform_product_id` varchar(64) COMMENT '平台商品ID',
+  `remark` varchar(500) COMMENT '备注',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` varchar(64) COMMENT '创建者',
+  `update_by` varchar(64) COMMENT '更新者',
+  `del_flag` tinyint NOT NULL DEFAULT 0 COMMENT '删除标志(0未删除,1已删除)',
+  PRIMARY KEY (`id`),
+  KEY `idx_tenant_id` (`tenant_id`),
+  KEY `idx_shop_id` (`shop_id`),
+  KEY `idx_product_id` (`product_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='商品成本表';
+
+-- 抖店配置表
+CREATE TABLE IF NOT EXISTS `finance_doudian_config` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '配置ID',
+  `tenant_id` bigint NOT NULL COMMENT '租户ID',
+  `shop_id` bigint NOT NULL COMMENT '店铺ID',
+  `shop_name` varchar(255) COMMENT '店铺名称',
+  `app_key` varchar(255) NOT NULL COMMENT 'App Key',
+  `app_secret` varchar(255) NOT NULL COMMENT 'App Secret',
+  `access_token` text COMMENT 'Access Token',
+  `refresh_token` text COMMENT 'Refresh Token',
+  `token_expire_time` bigint COMMENT 'Token 过期时间',
+  `auth_status` varchar(32) COMMENT '授权状态',
+  `auth_time` bigint COMMENT '授权时间',
+  `enabled` tinyint DEFAULT 1 COMMENT '是否启用(0禁用,1启用)',
+  `remark` varchar(500) COMMENT '备注',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` varchar(64) COMMENT '创建者',
+  `update_by` varchar(64) COMMENT '更新者',
+  `del_flag` tinyint NOT NULL DEFAULT 0 COMMENT '删除标志(0未删除,1已删除)',
+  PRIMARY KEY (`id`),
+  KEY `idx_tenant_id` (`tenant_id`),
+  KEY `idx_shop_id` (`shop_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='抖店配置表';
+
+-- 数据同步日志表
+CREATE TABLE IF NOT EXISTS `finance_sync_log` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '同步日志ID',
+  `tenant_id` bigint NOT NULL COMMENT '租户ID',
+  `shop_id` bigint NOT NULL COMMENT '店铺ID',
+  `sync_type` varchar(32) NOT NULL COMMENT '同步类型',
+  `data_source` varchar(32) NOT NULL COMMENT '数据来源',
+  `sync_status` varchar(32) COMMENT '同步状态',
+  `start_time` datetime COMMENT '同步开始时间',
+  `end_time` datetime COMMENT '同步结束时间',
+  `sync_count` int COMMENT '同步数量',
+  `success_count` int COMMENT '成功数量',
+  `fail_count` int COMMENT '失败数量',
+  `error_message` text COMMENT '错误信息',
+  `sync_params` text COMMENT '同步参数',
+  `remark` varchar(500) COMMENT '备注',
+  `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `create_by` varchar(64) COMMENT '创建者',
+  `update_by` varchar(64) COMMENT '更新者',
+  `del_flag` tinyint NOT NULL DEFAULT 0 COMMENT '删除标志(0未删除,1已删除)',
+  PRIMARY KEY (`id`),
+  KEY `idx_tenant_id` (`tenant_id`),
+  KEY `idx_shop_id` (`shop_id`),
+  KEY `idx_sync_type` (`sync_type`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='数据同步日志表';

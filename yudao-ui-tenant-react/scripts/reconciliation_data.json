@@ -1,0 +1,50 @@
+{
+  "基准数据": {
+    "totalOrders": 18700,
+    "shippedOrders": 14487,
+    "totalSales": 619571.24,
+    "confirmedAmount": 489749.5,
+    "unconfirmedAmount": 7469,
+    "refundAmount": 122352.74,
+    "expressAmount": 46358.4,
+    "commissionAmount": 43405.25,
+    "serviceAmount": 12392.43,
+    "costAmount": 272895,
+    "promotionAmount": 191131.42,
+    "otherAmount": 604.22,
+    "insuranceAmount": 2049.57,
+    "payoutAmount": 211.09,
+    "profitAmount": -71813.3,
+    "profitRatio": -11.59,
+    "refundRatio": 19.75,
+    "promotionRatio": 30.85
+  },
+  "衍生数据": {
+    "grossProfit": 224323.5,
+    "netSales": 497218.5,
+    "totalExpenses": 296152.38,
+    "avgOrderAmount": 33.132151871657754,
+    "avgShippedOrderAmount": 42.76739421550356,
+    "shippedRatio": 77.47058823529412
+  },
+  "模块映射": {
+    "经营概览": {
+      "总营收": 619571.24,
+      "总毛利": 224323.5,
+      "净利润": -71813.3,
+      "订单数": 18700
+    },
+    "费用中心": {
+      "推广费": 191131.42,
+      "物流费": 46358.4,
+      "佣金": 43405.25,
+      "服务费": 12392.43,
+      "其他费用": 2864.88
+    },
+    "资金流水": {
+      "收入": 619571.24,
+      "支出": 569047.38,
+      "退款": 122352.74
+    }
+  }
+}

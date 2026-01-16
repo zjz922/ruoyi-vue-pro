@@ -1,0 +1,9 @@
+{
+  "query": "TRUNCATE TABLE orders;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2Wb3APCysLWQud4.9fc3675e6561 --database NapRQi7rfF4YQ7W3hrvvCr --execute TRUNCATE TABLE orders;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1820
+}

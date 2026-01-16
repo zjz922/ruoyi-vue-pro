@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO product_costs (productId, sku, title, cost, merchantCode, price, customName, stock, status, effectiveDate, shopName) VALUES\n('3741525371611382110', '0', '家用一次性纸杯 50只装 商用水杯超市咖啡杯奶茶办公室加厚纸杯', 0.0, NULL, 4.1, NULL, 1, 0, '2025-01-19', '滋栈官方旗舰店'),\n('3741525337402638743', '0', '一次性纸杯 50只装 家用加厚高档国潮风水杯耐用中国风茶水杯', 0.0, NULL, 4.1, NULL, 1, 0, '2025-01-19', '滋栈官方旗舰店');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway03.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 2Wb3APCysLWQud4.9fc3675e6561 --database NapRQi7rfF4YQ7W3hrvvCr --execute INSERT INTO product_costs (productId, sku, title, cost, merchantCode, price, customName, stock, status, effectiveDate, shopName) VALUES\n('3741525371611382110', '0', '家用一次性纸杯 50只装 商用水杯超市咖啡杯奶茶办公室加厚纸杯', 0.0, NULL, 4.1, NULL, 1, 0, '2025-01-19', '滋栈官方旗舰店'),\n('3741525337402638743', '0', '一次性纸杯 50只装 家用加厚高档国潮风水杯耐用中国风茶水杯', 0.0, NULL, 4.1, NULL, 1, 0, '2025-01-19', '滋栈官方旗舰店');",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1545
+}

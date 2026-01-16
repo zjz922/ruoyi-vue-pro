@@ -1,0 +1,162 @@
+[
+  {
+    "date": "2025-05-12",
+    "shippedOrders": 1,
+    "shippedAmount": 29.9
+  },
+  {
+    "date": "2025-05-05",
+    "shippedOrders": 1,
+    "shippedAmount": 29.9
+  },
+  {
+    "date": "2025-05-01",
+    "shippedOrders": 931,
+    "shippedAmount": 33595.88
+  },
+  {
+    "date": "2025-04-30",
+    "shippedOrders": 1574,
+    "shippedAmount": 52097.16
+  },
+  {
+    "date": "2025-04-29",
+    "shippedOrders": 3142,
+    "shippedAmount": 113082.35
+  },
+  {
+    "date": "2025-04-28",
+    "shippedOrders": 1083,
+    "shippedAmount": 35051.43
+  },
+  {
+    "date": "2025-04-27",
+    "shippedOrders": 321,
+    "shippedAmount": 9257.14
+  },
+  {
+    "date": "2025-04-26",
+    "shippedOrders": 373,
+    "shippedAmount": 10875.19
+  },
+  {
+    "date": "2025-04-25",
+    "shippedOrders": 793,
+    "shippedAmount": 39915.92
+  },
+  {
+    "date": "2025-04-24",
+    "shippedOrders": 553,
+    "shippedAmount": 15963.38
+  },
+  {
+    "date": "2025-04-23",
+    "shippedOrders": 633,
+    "shippedAmount": 19049.89
+  },
+  {
+    "date": "2025-04-22",
+    "shippedOrders": 858,
+    "shippedAmount": 25704.11
+  },
+  {
+    "date": "2025-04-21",
+    "shippedOrders": 433,
+    "shippedAmount": 18707.29
+  },
+  {
+    "date": "2025-04-20",
+    "shippedOrders": 211,
+    "shippedAmount": 6083.7
+  },
+  {
+    "date": "2025-04-19",
+    "shippedOrders": 344,
+    "shippedAmount": 10231.57
+  },
+  {
+    "date": "2025-04-18",
+    "shippedOrders": 494,
+    "shippedAmount": 14658.94
+  },
+  {
+    "date": "2025-04-17",
+    "shippedOrders": 420,
+    "shippedAmount": 20428.3
+  },
+  {
+    "date": "2025-04-16",
+    "shippedOrders": 501,
+    "shippedAmount": 20333.31
+  },
+  {
+    "date": "2025-04-15",
+    "shippedOrders": 299,
+    "shippedAmount": 8688.89
+  },
+  {
+    "date": "2025-04-14",
+    "shippedOrders": 173,
+    "shippedAmount": 5016.07
+  },
+  {
+    "date": "2025-04-13",
+    "shippedOrders": 141,
+    "shippedAmount": 4243.26
+  },
+  {
+    "date": "2025-04-12",
+    "shippedOrders": 157,
+    "shippedAmount": 4849.93
+  },
+  {
+    "date": "2025-04-11",
+    "shippedOrders": 145,
+    "shippedAmount": 4517.99
+  },
+  {
+    "date": "2025-04-10",
+    "shippedOrders": 405,
+    "shippedAmount": 12714.54
+  },
+  {
+    "date": "2025-04-09",
+    "shippedOrders": 322,
+    "shippedAmount": 10152.52
+  },
+  {
+    "date": "2025-04-08",
+    "shippedOrders": 55,
+    "shippedAmount": 1606.8
+  },
+  {
+    "date": "2025-04-07",
+    "shippedOrders": 99,
+    "shippedAmount": 3012.9
+  },
+  {
+    "date": "2025-04-06",
+    "shippedOrders": 17,
+    "shippedAmount": 538.2
+  },
+  {
+    "date": "2025-04-05",
+    "shippedOrders": 9,
+    "shippedAmount": 209.3
+  },
+  {
+    "date": "2025-04-03",
+    "shippedOrders": 2,
+    "shippedAmount": 0.0
+  },
+  {
+    "date": "2025-04-02",
+    "shippedOrders": 1,
+    "shippedAmount": 29.9
+  },
+  {
+    "date": "2025-04-01",
+    "shippedOrders": 1,
+    "shippedAmount": 29.9
+  }
+]

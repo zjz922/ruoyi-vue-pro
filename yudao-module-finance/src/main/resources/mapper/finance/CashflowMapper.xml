@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.finance.dal.mysql.CashflowMapper">
+
+    <resultMap id="BaseResultMap" type="cn.iocoder.yudao.module.finance.dal.dataobject.CashflowDO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="shop_id" property="shopId"/>
+        <result column="flow_no" property="flowNo"/>
+        <result column="trade_type" property="tradeType"/>
+        <result column="amount" property="amount"/>
+        <result column="balance" property="balance"/>
+        <result column="channel" property="channel"/>
+        <result column="counterparty" property="counterparty"/>
+        <result column="description" property="description"/>
+        <result column="trade_time" property="tradeTime"/>
+        <result column="confirm_status" property="confirmStatus"/>
+        <result column="confirm_time" property="confirmTime"/>
+        <result column="reconciliation_status" property="reconciliationStatus"/>
+        <result column="platform" property="platform"/>
+        <result column="platform_flow_id" property="platformFlowId"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="del_flag" property="delFlag"/>
+    </resultMap>
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, shop_id, flow_no, trade_type, amount, balance, channel,
+        counterparty, description, trade_time, confirm_status, confirm_time,
+        reconciliation_status, platform, platform_flow_id, remark, create_time,
+        update_time, create_by, update_by, del_flag
+    </sql>
+
+    <!-- 按流水号查询 -->
+    <select id="selectByFlowNo" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_cashflow
+        WHERE flow_no = #{flowNo} AND del_flag = 0
+        LIMIT 1
+    </select>
+
+    <!-- 按平台流水ID查询 -->
+    <select id="selectByPlatformFlowId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_cashflow
+        WHERE platform_flow_id = #{platformFlowId} AND platform = #{platform} AND del_flag = 0
+        LIMIT 1
+    </select>
+
+    <!-- 查询资金流水统计 -->
+    <select id="selectCashflowStats" resultType="java.util.Map">
+        SELECT
+            SUM(CASE WHEN trade_type = 'income' THEN amount ELSE 0 END) as total_income,
+            SUM(CASE WHEN trade_type = 'expense' THEN amount ELSE 0 END) as total_expense,
+            SUM(CASE WHEN trade_type = 'refund' THEN amount ELSE 0 END) as total_refund,
+            COUNT(*) as total_count,
+            SUM(CASE WHEN confirm_status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_count,
+            SUM(CASE WHEN reconciliation_status = 'reconciled' THEN 1 ELSE 0 END) as reconciled_count
+        FROM finance_cashflow
+        WHERE shop_id = #{shopId} AND del_flag = 0
+        <if test="startTime != null">
+            AND trade_time >= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND trade_time &lt;= #{endTime}
+        </if>
+    </select>
+
+    <!-- 查询未对账的流水 -->
+    <select id="selectUnreconciledCashflow" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_cashflow
+        WHERE shop_id = #{shopId}
+        AND reconciliation_status != 'reconciled'
+        AND del_flag = 0
+        ORDER BY trade_time ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 查询待确认的流水 -->
+    <select id="selectUnconfirmedCashflow" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_cashflow
+        WHERE shop_id = #{shopId}
+        AND confirm_status != 'confirmed'
+        AND del_flag = 0
+        ORDER BY trade_time ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+</mapper>

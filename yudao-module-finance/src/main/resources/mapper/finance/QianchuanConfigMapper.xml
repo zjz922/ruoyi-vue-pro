@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.finance.dal.mysql.QianchuanConfigMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.iocoder.yudao.module.finance.dal.dataobject.QianchuanConfigDO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="shop_id" property="shopId"/>
+        <result column="advertiser_id" property="advertiserId"/>
+        <result column="advertiser_name" property="advertiserName"/>
+        <result column="access_token" property="accessToken"/>
+        <result column="refresh_token" property="refreshToken"/>
+        <result column="token_expire_time" property="tokenExpireTime"/>
+        <result column="auth_status" property="authStatus"/>
+        <result column="sync_enabled" property="syncEnabled"/>
+        <result column="sync_interval" property="syncInterval"/>
+        <result column="last_sync_time" property="lastSyncTime"/>
+        <result column="last_sync_status" property="lastSyncStatus"/>
+        <result column="last_sync_message" property="lastSyncMessage"/>
+        <result column="extra_config" property="extraConfig"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, shop_id, advertiser_id, advertiser_name, access_token, refresh_token,
+        token_expire_time, auth_status, sync_enabled, sync_interval, last_sync_time,
+        last_sync_status, last_sync_message, extra_config,
+        creator, create_time, updater, update_time, deleted
+    </sql>
+
+    <!-- 根据广告主ID查询 -->
+    <select id="selectByAdvertiserId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_qianchuan_config
+        WHERE advertiser_id = #{advertiserId} AND deleted = 0
+    </select>
+
+    <!-- 根据店铺ID查询 -->
+    <select id="selectByShopId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_qianchuan_config
+        WHERE shop_id = #{shopId} AND deleted = 0
+    </select>
+
+    <!-- 分页查询 -->
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_qianchuan_config
+        WHERE deleted = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="authStatus != null">
+            AND auth_status = #{authStatus}
+        </if>
+        <if test="syncEnabled != null">
+            AND sync_enabled = #{syncEnabled}
+        </if>
+        <if test="advertiserName != null and advertiserName != ''">
+            AND advertiser_name LIKE CONCAT('%', #{advertiserName}, '%')
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询需要同步的配置 -->
+    <select id="selectNeedSync" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_qianchuan_config
+        WHERE deleted = 0 
+          AND auth_status = 1 
+          AND sync_enabled = 1
+          AND (last_sync_time IS NULL 
+               OR DATE_ADD(last_sync_time, INTERVAL sync_interval MINUTE) &lt;= NOW())
+        ORDER BY last_sync_time ASC
+    </select>
+
+    <!-- 查询即将过期的Token -->
+    <select id="selectExpiringSoon" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_qianchuan_config
+        WHERE deleted = 0 
+          AND auth_status = 1
+          AND token_expire_time BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL #{hours} HOUR)
+        ORDER BY token_expire_time ASC
+    </select>
+
+    <!-- 更新Token -->
+    <update id="updateToken">
+        UPDATE finance_qianchuan_config
+        SET access_token = #{accessToken},
+            refresh_token = #{refreshToken},
+            token_expire_time = #{tokenExpireTime},
+            updater = #{updater},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 更新同步状态 -->
+    <update id="updateSyncStatus">
+        UPDATE finance_qianchuan_config
+        SET last_sync_time = NOW(),
+            last_sync_status = #{lastSyncStatus},
+            last_sync_message = #{lastSyncMessage},
+            updater = #{updater},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 更新授权状态 -->
+    <update id="updateAuthStatus">
+        UPDATE finance_qianchuan_config
+        SET auth_status = #{authStatus},
+            updater = #{updater},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>

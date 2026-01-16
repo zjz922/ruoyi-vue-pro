@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `currentShopId` varchar(64);

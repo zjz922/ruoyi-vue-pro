@@ -1,0 +1,205 @@
+[
+  {
+    "date": "2025-04-30",
+    "totalOrders": 2386,
+    "shippedOrders": 1935,
+    "totalAmount": 84168.15,
+    "shippedAmount": 67071.46
+  },
+  {
+    "date": "2025-04-29",
+    "totalOrders": 1727,
+    "shippedOrders": 1435,
+    "totalAmount": 58578.4,
+    "shippedAmount": 47661.21
+  },
+  {
+    "date": "2025-04-28",
+    "totalOrders": 3517,
+    "shippedOrders": 2807,
+    "totalAmount": 130539.22,
+    "shippedAmount": 101526.01
+  },
+  {
+    "date": "2025-04-27",
+    "totalOrders": 928,
+    "shippedOrders": 725,
+    "totalAmount": 29304.99,
+    "shippedAmount": 22483.29
+  },
+  {
+    "date": "2025-04-26",
+    "totalOrders": 327,
+    "shippedOrders": 259,
+    "totalAmount": 9622.03,
+    "shippedAmount": 7576.03
+  },
+  {
+    "date": "2025-04-25",
+    "totalOrders": 502,
+    "shippedOrders": 390,
+    "totalAmount": 14504.38,
+    "shippedAmount": 11074.75
+  },
+  {
+    "date": "2025-04-24",
+    "totalOrders": 1136,
+    "shippedOrders": 796,
+    "totalAmount": 58146.28,
+    "shippedAmount": 39786.76
+  },
+  {
+    "date": "2025-04-23",
+    "totalOrders": 739,
+    "shippedOrders": 585,
+    "totalAmount": 21973.71,
+    "shippedAmount": 17398.22
+  },
+  {
+    "date": "2025-04-22",
+    "totalOrders": 997,
+    "shippedOrders": 800,
+    "totalAmount": 31357.15,
+    "shippedAmount": 24277.93
+  },
+  {
+    "date": "2025-04-21",
+    "totalOrders": 787,
+    "shippedOrders": 612,
+    "totalAmount": 23400.41,
+    "shippedAmount": 18033.89
+  },
+  {
+    "date": "2025-04-20",
+    "totalOrders": 627,
+    "shippedOrders": 449,
+    "totalAmount": 27754.09,
+    "shippedAmount": 19253.59
+  },
+  {
+    "date": "2025-04-19",
+    "totalOrders": 274,
+    "shippedOrders": 212,
+    "totalAmount": 8277.91,
+    "shippedAmount": 6380.3
+  },
+  {
+    "date": "2025-04-18",
+    "totalOrders": 726,
+    "shippedOrders": 517,
+    "totalAmount": 21354.47,
+    "shippedAmount": 15175.98
+  },
+  {
+    "date": "2025-04-17",
+    "totalOrders": 401,
+    "shippedOrders": 297,
+    "totalAmount": 12392.13,
+    "shippedAmount": 9208.73
+  },
+  {
+    "date": "2025-04-16",
+    "totalOrders": 650,
+    "shippedOrders": 433,
+    "totalAmount": 32269.03,
+    "shippedAmount": 20376.69
+  },
+  {
+    "date": "2025-04-15",
+    "totalOrders": 716,
+    "shippedOrders": 508,
+    "totalAmount": 30809.02,
+    "shippedAmount": 20581.88
+  },
+  {
+    "date": "2025-04-14",
+    "totalOrders": 343,
+    "shippedOrders": 276,
+    "totalAmount": 9971.42,
+    "shippedAmount": 7926.79
+  },
+  {
+    "date": "2025-04-13",
+    "totalOrders": 240,
+    "shippedOrders": 186,
+    "totalAmount": 7307.05,
+    "shippedAmount": 5615.75
+  },
+  {
+    "date": "2025-04-12",
+    "totalOrders": 224,
+    "shippedOrders": 186,
+    "totalAmount": 6802.26,
+    "shippedAmount": 5617.15
+  },
+  {
+    "date": "2025-04-11",
+    "totalOrders": 112,
+    "shippedOrders": 78,
+    "totalAmount": 3364.69,
+    "shippedAmount": 2502.59
+  },
+  {
+    "date": "2025-04-10",
+    "totalOrders": 371,
+    "shippedOrders": 282,
+    "totalAmount": 11380.72,
+    "shippedAmount": 8793.83
+  },
+  {
+    "date": "2025-04-09",
+    "totalOrders": 425,
+    "shippedOrders": 320,
+    "totalAmount": 13174.86,
+    "shippedAmount": 10080.72
+  },
+  {
+    "date": "2025-04-08",
+    "totalOrders": 311,
+    "shippedOrders": 234,
+    "totalAmount": 9647.11,
+    "shippedAmount": 7258.11
+  },
+  {
+    "date": "2025-04-07",
+    "totalOrders": 93,
+    "shippedOrders": 65,
+    "totalAmount": 2803.0,
+    "shippedAmount": 1971.2
+  },
+  {
+    "date": "2025-04-06",
+    "totalOrders": 125,
+    "shippedOrders": 92,
+    "totalAmount": 3845.1,
+    "shippedAmount": 2803.6
+  },
+  {
+    "date": "2025-04-05",
+    "totalOrders": 5,
+    "shippedOrders": 4,
+    "totalAmount": 149.5,
+    "shippedAmount": 119.6
+  },
+  {
+    "date": "2025-04-04",
+    "totalOrders": 6,
+    "shippedOrders": 4,
+    "totalAmount": 149.5,
+    "shippedAmount": 89.7
+  },
+  {
+    "date": "2025-04-03",
+    "totalOrders": 3,
+    "shippedOrders": 3,
+    "totalAmount": 0.0,
+    "shippedAmount": 0.0
+  },
+  {
+    "date": "2025-04-01",
+    "totalOrders": 2,
+    "shippedOrders": 2,
+    "totalAmount": 59.8,
+    "shippedAmount": 59.8
+  }
+]

@@ -1,0 +1,108 @@
+# 财务模块配置
+finance:
+  # 抖店API配置
+  doudian:
+    # API基础URL
+    baseUrl: https://api.jinritemai.com
+    # 应用密钥（从环境变量读取）
+    appKey: ${DOUDIAN_APP_KEY}
+    appSecret: ${DOUDIAN_APP_SECRET}
+    # API超时时间（毫秒）
+    timeout: 30000
+    # 重试次数
+    retryCount: 3
+    # 重试延迟（毫秒）
+    retryDelay: 1000
+
+  # 巨量千川API配置
+  qianchuan:
+    # API基础URL
+    baseUrl: https://api.oceanengine.com
+    # 应用密钥（从环境变量读取）
+    appId: ${QIANCHUAN_APP_ID}
+    appSecret: ${QIANCHUAN_APP_SECRET}
+    # API超时时间（毫秒）
+    timeout: 30000
+    # 重试次数
+    retryCount: 3
+    # 重试延迟（毫秒）
+    retryDelay: 1000
+
+  # 聚水潭ERP API配置
+  jushuitan:
+    # API基础URL
+    baseUrl: https://api.jushuitan.com
+    # 合作方编号（从环境变量读取）
+    partnerId: ${JUSHUITAN_PARTNER_ID}
+    partnerSecret: ${JUSHUITAN_PARTNER_SECRET}
+    # API超时时间（毫秒）
+    timeout: 30000
+    # 重试次数
+    retryCount: 3
+    # 重试延迟（毫秒）
+    retryDelay: 1000
+
+  # 定时任务配置
+  scheduler:
+    # 每日数据同步任务（每日凌晨2点执行）
+    dailySyncCron: "0 0 2 * * ?"
+    # 每周数据对账任务（每周一凌晨3点执行）
+    weeklySyncCron: "0 0 3 ? * MON"
+    # 每月数据汇总任务（每月1日凌晨4点执行）
+    monthlySyncCron: "0 0 4 1 * ?"
+    # 任务超时时间（秒）
+    taskTimeout: 300
+
+  # 数据同步配置
+  sync:
+    # 同步数据的时间范围（天数）
+    dataDays: 30
+    # 同步批次大小
+    batchSize: 100
+    # 同步失败重试次数
+    retryCount: 3
+    # 同步失败告警阈值（连续失败次数）
+    alertThreshold: 3
+
+  # 成本计算配置
+  cost:
+    # 成本计算方法：WEIGHTED_AVERAGE、FIFO、LATEST
+    calculationMethod: WEIGHTED_AVERAGE
+    # 成本变动预警阈值（百分比）
+    alertThreshold: 10
+    # 是否启用成本预警
+    enableAlert: true
+
+  # 数据导出配置
+  export:
+    # 导出文件保存路径
+    filePath: /data/finance/export
+    # 导出文件保留天数
+    retentionDays: 30
+    # 最大导出记录数
+    maxRecords: 100000
+
+  # 数据清理配置
+  cleanup:
+    # 是否启用数据清理
+    enabled: true
+    # 清理任务执行时间（每月1日凌晨5点）
+    cronExpression: "0 0 5 1 * ?"
+    # 保留数据天数
+    retentionDays: 365
+
+  # 多租户配置
+  tenant:
+    # 是否启用多租户
+    enabled: true
+    # 租户隔离模式：COLUMN、DATABASE、SCHEMA
+    isolationMode: COLUMN
+    # 租户ID列名
+    tenantIdColumn: tenant_id
+
+  # 日志配置
+  logging:
+    # 是否记录详细日志
+    verbose: true
+    # 日志保留天数
+    retentionDays: 30

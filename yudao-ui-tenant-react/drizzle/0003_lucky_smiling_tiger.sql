@@ -1,0 +1,80 @@
+CREATE TABLE `daily_stats` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`statDate` varchar(10) NOT NULL,
+	`shippedCount` int NOT NULL DEFAULT 0,
+	`salesAmount` decimal(12,2) NOT NULL DEFAULT '0',
+	`refundAmount` decimal(12,2) NOT NULL DEFAULT '0',
+	`expressFee` decimal(12,2) NOT NULL DEFAULT '0',
+	`smallPayment` decimal(12,2) NOT NULL DEFAULT '0',
+	`influencerCommission` decimal(12,2) NOT NULL DEFAULT '0',
+	`serviceFee` decimal(12,2) NOT NULL DEFAULT '0',
+	`productCost` decimal(12,2) NOT NULL DEFAULT '0',
+	`operationFee` decimal(12,2) NOT NULL DEFAULT '0',
+	`compensation` decimal(12,2) NOT NULL DEFAULT '0',
+	`promotionFee` decimal(12,2) NOT NULL DEFAULT '0',
+	`otherFee` decimal(12,2) NOT NULL DEFAULT '0',
+	`insuranceFee` decimal(12,2) NOT NULL DEFAULT '0',
+	`estimatedProfit` decimal(12,2) NOT NULL DEFAULT '0',
+	`profitRate` decimal(8,4),
+	`qcPayOrderCount` int DEFAULT 0,
+	`qcPayOrderAmount` decimal(12,2) DEFAULT '0',
+	`qcRoi` decimal(8,4),
+	`promotionSyncTime` timestamp,
+	`shopName` varchar(128) DEFAULT '滋栈官方旗舰店',
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `daily_stats_id` PRIMARY KEY(`id`),
+	CONSTRAINT `daily_stats_statDate_unique` UNIQUE(`statDate`)
+);
+--> statement-breakpoint
+CREATE TABLE `qianchuan_config` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`appId` varchar(64) NOT NULL,
+	`appSecret` varchar(256) NOT NULL,
+	`advertiserId` varchar(64),
+	`accessToken` text,
+	`refreshToken` text,
+	`tokenExpiresAt` timestamp,
+	`refreshExpiresAt` timestamp,
+	`status` int NOT NULL DEFAULT 0,
+	`shopName` varchar(128) DEFAULT '滋栈官方旗舰店',
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `qianchuan_config_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `qianchuan_cost` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`advertiserId` varchar(64) NOT NULL,
+	`statDate` varchar(10) NOT NULL,
+	`statCost` decimal(12,2) NOT NULL DEFAULT '0',
+	`showCnt` int NOT NULL DEFAULT 0,
+	`clickCnt` int NOT NULL DEFAULT 0,
+	`ctr` decimal(8,4),
+	`cpm` decimal(10,2),
+	`payOrderCount` int NOT NULL DEFAULT 0,
+	`payOrderAmount` decimal(12,2) NOT NULL DEFAULT '0',
+	`roi` decimal(8,4),
+	`costPerOrder` decimal(10,2),
+	`marketingGoal` varchar(32),
+	`syncTime` timestamp,
+	`shopName` varchar(128) DEFAULT '滋栈官方旗舰店',
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `qianchuan_cost_id` PRIMARY KEY(`id`)
+);
+--> statement-breakpoint
+CREATE TABLE `qianchuan_sync_log` (
+	`id` int AUTO_INCREMENT NOT NULL,
+	`advertiserId` varchar(64),
+	`syncType` varchar(16) NOT NULL,
+	`startDate` varchar(10) NOT NULL,
+	`endDate` varchar(10) NOT NULL,
+	`status` varchar(16) NOT NULL DEFAULT 'pending',
+	`recordCount` int DEFAULT 0,
+	`errorMessage` text,
+	`duration` int,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `qianchuan_sync_log_id` PRIMARY KEY(`id`)
+);

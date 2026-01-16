@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.finance.dal.mysql.AlertRecordMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.iocoder.yudao.module.finance.dal.dataobject.AlertRecordDO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="shop_id" property="shopId"/>
+        <result column="rule_id" property="ruleId"/>
+        <result column="rule_name" property="ruleName"/>
+        <result column="alert_type" property="alertType"/>
+        <result column="alert_level" property="alertLevel"/>
+        <result column="alert_title" property="alertTitle"/>
+        <result column="alert_content" property="alertContent"/>
+        <result column="alert_data" property="alertData"/>
+        <result column="trigger_value" property="triggerValue"/>
+        <result column="threshold_value" property="thresholdValue"/>
+        <result column="alert_time" property="alertTime"/>
+        <result column="status" property="status"/>
+        <result column="handle_result" property="handleResult"/>
+        <result column="handle_remark" property="handleRemark"/>
+        <result column="handle_time" property="handleTime"/>
+        <result column="handler" property="handler"/>
+        <result column="notify_status" property="notifyStatus"/>
+        <result column="notify_time" property="notifyTime"/>
+        <result column="notify_result" property="notifyResult"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, shop_id, rule_id, rule_name, alert_type, alert_level,
+        alert_title, alert_content, alert_data, trigger_value, threshold_value,
+        alert_time, status, handle_result, handle_remark, handle_time, handler,
+        notify_status, notify_time, notify_result,
+        creator, create_time, updater, update_time, deleted
+    </sql>
+
+    <!-- 分页查询 -->
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_alert_record
+        WHERE deleted = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        <if test="alertType != null and alertType != ''">
+            AND alert_type = #{alertType}
+        </if>
+        <if test="alertLevel != null and alertLevel != ''">
+            AND alert_level = #{alertLevel}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="startTime != null">
+            AND alert_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND alert_time &lt;= #{endTime}
+        </if>
+        ORDER BY alert_time DESC
+    </select>
+
+    <!-- 查询未处理的预警 -->
+    <select id="selectUnhandled" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_alert_record
+        WHERE deleted = 0 AND status = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        <if test="alertLevel != null and alertLevel != ''">
+            AND alert_level = #{alertLevel}
+        </if>
+        ORDER BY 
+            CASE alert_level 
+                WHEN 'CRITICAL' THEN 1 
+                WHEN 'HIGH' THEN 2 
+                WHEN 'NORMAL' THEN 3 
+                WHEN 'LOW' THEN 4 
+            END,
+            alert_time DESC
+    </select>
+
+    <!-- 统计未处理预警数量 -->
+    <select id="countUnhandled" resultType="java.util.Map">
+        SELECT 
+            alert_level,
+            COUNT(*) as count
+        FROM finance_alert_record
+        WHERE deleted = 0 AND status = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        GROUP BY alert_level
+    </select>
+
+    <!-- 按类型统计预警 -->
+    <select id="countByType" resultType="java.util.Map">
+        SELECT 
+            alert_type,
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as unhandled,
+            SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) as handled,
+            SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) as ignored
+        FROM finance_alert_record
+        WHERE deleted = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        <if test="startTime != null">
+            AND alert_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND alert_time &lt;= #{endTime}
+        </if>
+        GROUP BY alert_type
+    </select>
+
+    <!-- 按日期统计预警趋势 -->
+    <select id="countTrend" resultType="java.util.Map">
+        SELECT 
+            DATE(alert_time) as date,
+            COUNT(*) as total,
+            SUM(CASE WHEN alert_level = 'CRITICAL' THEN 1 ELSE 0 END) as critical,
+            SUM(CASE WHEN alert_level = 'HIGH' THEN 1 ELSE 0 END) as high,
+            SUM(CASE WHEN alert_level = 'NORMAL' THEN 1 ELSE 0 END) as normal,
+            SUM(CASE WHEN alert_level = 'LOW' THEN 1 ELSE 0 END) as low
+        FROM finance_alert_record
+        WHERE deleted = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        AND alert_time &gt;= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        GROUP BY DATE(alert_time)
+        ORDER BY date ASC
+    </select>
+
+    <!-- 更新处理状态 -->
+    <update id="updateHandleStatus">
+        UPDATE finance_alert_record
+        SET status = #{status},
+            handle_result = #{handleResult},
+            handle_remark = #{handleRemark},
+            handle_time = NOW(),
+            handler = #{handler},
+            updater = #{updater},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 批量更新处理状态 -->
+    <update id="batchUpdateHandleStatus">
+        UPDATE finance_alert_record
+        SET status = #{status},
+            handle_result = #{handleResult},
+            handle_time = NOW(),
+            handler = #{handler},
+            updater = #{updater},
+            update_time = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND deleted = 0
+    </update>
+
+    <!-- 更新通知状态 -->
+    <update id="updateNotifyStatus">
+        UPDATE finance_alert_record
+        SET notify_status = #{notifyStatus},
+            notify_time = NOW(),
+            notify_result = #{notifyResult},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>
