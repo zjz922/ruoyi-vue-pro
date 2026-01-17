@@ -356,7 +356,7 @@ INSERT INTO sys_oper_log (title, business_type, method, request_method, operator
 VALUES (
   '查看财务报表',
   1,
-  'cn.iocoder.yudao.module.finance.controller.admin.report.ReportController.getReportPage',
+  'cn.iocoder.flash.module.finance.controller.admin.report.ReportController.getReportPage',
   'GET',
   1,
   'admin',

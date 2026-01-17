@@ -1,0 +1,1 @@
+package cn.flashsaas.module.crm.framework.permission.core;

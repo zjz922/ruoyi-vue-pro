@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.flash.module.finance.dal.mysql.DoudianShopMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.iocoder.flash.module.finance.dal.dataobject.DoudianShopDO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="shop_id" property="shopId"/>
+        <result column="shop_name" property="shopName"/>
+        <result column="shop_logo" property="shopLogo"/>
+        <result column="shop_type" property="shopType"/>
+        <result column="shop_status" property="shopStatus"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="category_name" property="categoryName"/>
+        <result column="contact_name" property="contactName"/>
+        <result column="contact_phone" property="contactPhone"/>
+        <result column="province" property="province"/>
+        <result column="city" property="city"/>
+        <result column="district" property="district"/>
+        <result column="address" property="address"/>
+        <result column="business_license" property="businessLicense"/>
+        <result column="legal_person" property="legalPerson"/>
+        <result column="open_time" property="openTime"/>
+        <result column="extra_info" property="extraInfo"/>
+        <result column="last_sync_time" property="lastSyncTime"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, shop_id, shop_name, shop_logo, shop_type, shop_status,
+        category_id, category_name, contact_name, contact_phone, province, city,
+        district, address, business_license, legal_person, open_time, extra_info,
+        last_sync_time, creator, create_time, updater, update_time, deleted
+    </sql>
+
+    <!-- 根据店铺ID查询 -->
+    <select id="selectByShopId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_doudian_shop
+        WHERE shop_id = #{shopId} AND deleted = 0
+    </select>
+
+    <!-- 根据租户ID查询店铺列表 -->
+    <select id="selectListByTenantId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_doudian_shop
+        WHERE tenant_id = #{tenantId} AND deleted = 0
+        <if test="shopStatus != null">
+            AND shop_status = #{shopStatus}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 分页查询 -->
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_doudian_shop
+        WHERE deleted = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="shopName != null and shopName != ''">
+            AND shop_name LIKE CONCAT('%', #{shopName}, '%')
+        </if>
+        <if test="shopStatus != null">
+            AND shop_status = #{shopStatus}
+        </if>
+        <if test="shopType != null">
+            AND shop_type = #{shopType}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 统计店铺数量 -->
+    <select id="countByTenant" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM finance_doudian_shop
+        WHERE tenant_id = #{tenantId} AND deleted = 0
+        <if test="shopStatus != null">
+            AND shop_status = #{shopStatus}
+        </if>
+    </select>
+
+    <!-- 更新同步时间 -->
+    <update id="updateLastSyncTime">
+        UPDATE finance_doudian_shop
+        SET last_sync_time = NOW(),
+            updater = #{updater},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 更新店铺状态 -->
+    <update id="updateShopStatus">
+        UPDATE finance_doudian_shop
+        SET shop_status = #{shopStatus},
+            updater = #{updater},
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>

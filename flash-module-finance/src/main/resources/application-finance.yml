@@ -1,0 +1,80 @@
+# ========================================
+# 财务管理模块配置
+# ========================================
+
+spring:
+  application:
+    name: flash-module-finance
+
+# 财务模块配置
+finance:
+  # 抖店配置
+  doudian:
+    # 是否启用抖店集成
+    enabled: true
+    # API基础URL
+    api-url: https://open.douyin.com
+    # 抖店应用App Key
+    app-key: 7569846683366884874
+    # 抖店应用App Secret
+    app-secret: 5ed2bbdd-cc97-4871-a3c3-e013ff1f381e
+    # 请求超时时间（毫秒）
+    timeout: 30000
+    # 重试次数
+    retry-count: 3
+    # OAuth回调URL（生产环境需要修改为实际域名）
+    callback-url: http://localhost:8080/admin-api/finance/doudian/oauth/callback
+
+  # 千川配置
+  qianchuan:
+    # 是否启用千川集成
+    enabled: true
+    # API基础URL
+    api-url: https://ad.oceanengine.com
+    # 请求超时时间（毫秒）
+    timeout: 30000
+
+  # 聚水潭配置
+  jst:
+    # 是否启用聚水潭集成
+    enabled: true
+    # API基础URL
+    api-url: https://api.erp.jst.com.cn
+    # 请求超时时间（毫秒）
+    timeout: 30000
+
+  # 数据同步配置
+  sync:
+    # 订单同步间隔（秒）
+    order-interval: 300
+    # 资金流水同步间隔（秒）
+    cashflow-interval: 600
+    # 商品成本同步间隔（秒）
+    product-cost-interval: 3600
+    # 同步线程数
+    thread-pool-size: 5
+    # 单次同步最大数量
+    batch-size: 100
+
+  # 对账配置
+  reconciliation:
+    # 是否启用自动对账
+    auto-enabled: true
+    # 自动对账间隔（秒）
+    auto-interval: 86400
+    # 对账差异阈值（元）
+    difference-threshold: 0.01
+
+  # 成本计算配置
+  cost:
+    # 默认成本计算方法 (weighted_average/latest/fifo)
+    default-method: weighted_average
+    # 是否启用自动更新
+    auto-update: true
+    # 自动更新间隔（秒）
+    auto-update-interval: 3600
+
+# 日志配置
+logging:
+  level:
+    cn.iocoder.flash.module.finance: DEBUG

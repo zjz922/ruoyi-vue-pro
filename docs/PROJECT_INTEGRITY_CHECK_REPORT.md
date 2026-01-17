@@ -340,12 +340,12 @@ public int executeDataReconciliation(Long shopId, LocalDate startDate, LocalDate
 ## 八、附录
 
 ### 8.1 相关文件清单
-- `/yudao-module-finance/src/main/java/cn/iocoder/yudao/module/finance/service/DataSyncServiceImpl.java`
-- `/yudao-module-finance/src/main/java/cn/iocoder/yudao/module/finance/api/client/DoudianApiClient.java`
-- `/yudao-module-finance/src/main/java/cn/iocoder/yudao/module/finance/api/client/QianchuanApiClient.java`
-- `/yudao-module-finance/src/main/java/cn/iocoder/yudao/module/finance/api/client/JstApiClient.java`
-- `/yudao-ui-tenant-react/server/reconciliation.ts`
-- `/yudao-ui-tenant-react/server/javaApiClient.ts`
+- `/flash-module-finance/src/main/java/cn/iocoder/flash/module/finance/service/DataSyncServiceImpl.java`
+- `/flash-module-finance/src/main/java/cn/iocoder/flash/module/finance/api/client/DoudianApiClient.java`
+- `/flash-module-finance/src/main/java/cn/iocoder/flash/module/finance/api/client/QianchuanApiClient.java`
+- `/flash-module-finance/src/main/java/cn/iocoder/flash/module/finance/api/client/JstApiClient.java`
+- `/flash-ui-tenant-react/server/reconciliation.ts`
+- `/flash-ui-tenant-react/server/javaApiClient.ts`
 
 ### 8.2 数据库表清单
 ```sql

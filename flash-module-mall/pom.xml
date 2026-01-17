@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>flash</artifactId>
+        <groupId>cn.flashsaas</groupId>
+        <version>${revision}</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>flash-module-mall</artifactId>
+    <packaging>pom</packaging>
+
+    <name>${project.artifactId}</name>
+
+    <description>
+        商城大模块，由 product 商品、promotion 营销、trade 交易、statistics 统计等组成
+    </description>
+    <modules>
+        <module>flash-module-product</module>
+        <module>flash-module-promotion</module>
+        <module>flash-module-trade</module>
+        <module>flash-module-statistics</module>
+        <!--
+            特殊：为什么会有 flash-module-trade-api 呢？
+                flash-module-promotion 和 flash-module-trade 之间相互循环依赖，所以抽出 flash-module-trade-api 模块，这样：
+                1. flash-module-promotion 依赖 flash-module-trade-api
+                2. flash-module-trade 依赖 flash-module-promotion
+            从而不存在相互（循环）依赖，即 flash-module-trade => flash-module-promotion => flash-module-trade-api
+         -->
+        <module>flash-module-trade-api</module>
+    </modules>
+
+</project>

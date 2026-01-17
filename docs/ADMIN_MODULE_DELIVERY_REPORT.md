@@ -205,7 +205,7 @@ CREATE TABLE finance_sync_exception (...);
 ### 5.1 前端文件
 
 ```
-yudao-ui/yudao-ui-admin-vue3/src/
+flash-ui/flash-ui-admin-vue3/src/
 ├── api/finance/
 │   ├── analysis.ts          # 经营分析API
 │   ├── platformConfig.ts    # 平台配置API
@@ -240,7 +240,7 @@ yudao-ui/yudao-ui-admin-vue3/src/
 ### 5.2 后端文件
 
 ```
-yudao-module-finance/src/main/java/cn/iocoder/yudao/module/finance/
+flash-module-finance/src/main/java/cn/iocoder/flash/module/finance/
 ├── controller/admin/
 │   ├── analysis/            # 经营分析Controller
 │   ├── platform/            # 平台配置Controller
@@ -277,26 +277,26 @@ sql/
 
 ```bash
 # 执行表结构SQL
-mysql -u root -p ruoyi-vue-pro < sql/finance_sync_tables.sql
+mysql -u root -p flash-saas < sql/finance_sync_tables.sql
 
 # 执行菜单SQL
-mysql -u root -p ruoyi-vue-pro < sql/finance_sync_menu_v2.sql
-mysql -u root -p ruoyi-vue-pro < sql/finance_report_menu.sql
-mysql -u root -p ruoyi-vue-pro < sql/finance_reconciliation_menu.sql
-mysql -u root -p ruoyi-vue-pro < sql/finance_analysis_menu.sql
+mysql -u root -p flash-saas < sql/finance_sync_menu_v2.sql
+mysql -u root -p flash-saas < sql/finance_report_menu.sql
+mysql -u root -p flash-saas < sql/finance_reconciliation_menu.sql
+mysql -u root -p flash-saas < sql/finance_analysis_menu.sql
 ```
 
 ### 6.2 后端编译
 
 ```bash
-cd yudao-module-finance
+cd flash-module-finance
 mvn clean package -DskipTests
 ```
 
 ### 6.3 前端构建
 
 ```bash
-cd yudao-ui/yudao-ui-admin-vue3
+cd flash-ui/flash-ui-admin-vue3
 pnpm install
 pnpm build
 ```
@@ -315,7 +315,7 @@ pnpm build
 
 ## 八、代码仓库
 
-- **GitHub地址**：https://github.com/zjz922/ruoyi-vue-pro
+- **GitHub地址**：https://github.com/zjz922/flash-saas
 - **最新提交**：`bce03c37aa` - feat(finance): 完成管理员后台模块开发
 
 ---

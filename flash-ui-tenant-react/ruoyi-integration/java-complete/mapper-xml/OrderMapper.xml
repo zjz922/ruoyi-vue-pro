@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.flash.module.finance.mapper.OrderMapper">
+
+    <resultMap id="OrderResultMap" type="com.flash.module.finance.entity.OrderDO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="order_no" property="orderNo"/>
+        <result column="sub_order_no" property="subOrderNo"/>
+        <result column="product_id" property="productId"/>
+        <result column="sku" property="sku"/>
+        <result column="product_title" property="productTitle"/>
+        <result column="quantity" property="quantity"/>
+        <result column="unit_price" property="unitPrice"/>
+        <result column="payable_amount" property="payableAmount"/>
+        <result column="paid_amount" property="paidAmount"/>
+        <result column="recipient_name" property="recipientName"/>
+        <result column="recipient_phone" property="recipientPhone"/>
+        <result column="recipient_address" property="recipientAddress"/>
+        <result column="province" property="province"/>
+        <result column="city" property="city"/>
+        <result column="district" property="district"/>
+        <result column="order_status" property="orderStatus"/>
+        <result column="shipment_status" property="shipmentStatus"/>
+        <result column="after_sale_status" property="afterSaleStatus"/>
+        <result column="order_time" property="orderTime"/>
+        <result column="shipment_time" property="shipmentTime"/>
+        <result column="receipt_time" property="receiptTime"/>
+        <result column="express_company" property="expressCompany"/>
+        <result column="express_no" property="expressNo"/>
+        <result column="express_charge" property="expressCharge"/>
+        <result column="refund_amount" property="refundAmount"/>
+        <result column="influencer_commission" property="influencerCommission"/>
+        <result column="service_fee" property="serviceFee"/>
+        <result column="product_cost" property="productCost"/>
+        <result column="promotion_fee" property="promotionFee"/>
+        <result column="insurance_fee" property="insuranceFee"/>
+        <result column="other_fee" property="otherFee"/>
+        <result column="compensation" property="compensation"/>
+        <result column="estimated_profit" property="estimatedProfit"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="columns">
+        id, tenant_id, order_no, sub_order_no, product_id, sku, product_title, quantity,
+        unit_price, payable_amount, paid_amount, recipient_name, recipient_phone,
+        recipient_address, province, city, district, order_status, shipment_status,
+        after_sale_status, order_time, shipment_time, receipt_time, express_company,
+        express_no, express_charge, refund_amount, influencer_commission, service_fee,
+        product_cost, promotion_fee, insurance_fee, other_fee, compensation,
+        estimated_profit, remark, create_time, update_time
+    </sql>
+
+    <select id="selectOrderPage" resultMap="OrderResultMap">
+        SELECT <include refid="columns"/>
+        FROM finance_orders
+        WHERE tenant_id = #{tenantId}
+        <if test="orderNo != null and orderNo != ''">
+            AND order_no LIKE CONCAT('%', #{orderNo}, '%')
+        </if>
+        <if test="productTitle != null and productTitle != ''">
+            AND product_title LIKE CONCAT('%', #{productTitle}, '%')
+        </if>
+        <if test="province != null and province != ''">
+            AND province = #{province}
+        </if>
+        <if test="orderStatus != null and orderStatus != ''">
+            AND order_status = #{orderStatus}
+        </if>
+        <if test="startDate != null">
+            AND DATE(order_time) >= #{startDate}
+        </if>
+        <if test="endDate != null">
+            AND DATE(order_time) &lt;= #{endDate}
+        </if>
+        ORDER BY order_time DESC
+    </select>
+
+    <select id="selectOrdersByDateRange" resultMap="OrderResultMap">
+        SELECT <include refid="columns"/>
+        FROM finance_orders
+        WHERE tenant_id = #{tenantId}
+        AND DATE(order_time) >= #{startDate}
+        AND DATE(order_time) &lt;= #{endDate}
+        ORDER BY order_time DESC
+    </select>
+
+    <select id="selectOrderCount" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM finance_orders
+        WHERE tenant_id = #{tenantId}
+        AND DATE(order_time) >= #{startDate}
+        AND DATE(order_time) &lt;= #{endDate}
+    </select>
+
+    <select id="selectByOrderNo" resultMap="OrderResultMap">
+        SELECT <include refid="columns"/>
+        FROM finance_orders
+        WHERE tenant_id = #{tenantId}
+        AND order_no = #{orderNo}
+        LIMIT 1
+    </select>
+
+    <select id="selectByOrderNos" resultMap="OrderResultMap">
+        SELECT <include refid="columns"/>
+        FROM finance_orders
+        WHERE tenant_id = #{tenantId}
+        AND order_no IN
+        <foreach collection="orderNos" item="orderNo" open="(" separator="," close=")">
+            #{orderNo}
+        </foreach>
+    </select>
+
+    <select id="selectBySku" resultMap="OrderResultMap">
+        SELECT <include refid="columns"/>
+        FROM finance_orders
+        WHERE tenant_id = #{tenantId}
+        AND sku = #{sku}
+        ORDER BY order_time DESC
+    </select>
+
+    <select id="selectOrderCountByProvince" resultType="java.util.Map">
+        SELECT province, COUNT(*) as count, SUM(payable_amount) as amount
+        FROM finance_orders
+        WHERE tenant_id = #{tenantId}
+        AND DATE(order_time) >= #{startDate}
+        AND DATE(order_time) &lt;= #{endDate}
+        GROUP BY province
+        ORDER BY count DESC
+    </select>
+
+    <select id="selectPendingShipmentOrders" resultMap="OrderResultMap">
+        SELECT <include refid="columns"/>
+        FROM finance_orders
+        WHERE tenant_id = #{tenantId}
+        AND shipment_status = 'pending'
+        ORDER BY order_time ASC
+    </select>
+
+    <select id="selectPendingReceiptOrders" resultMap="OrderResultMap">
+        SELECT <include refid="columns"/>
+        FROM finance_orders
+        WHERE tenant_id = #{tenantId}
+        AND shipment_status = 'shipped'
+        AND receipt_time IS NULL
+        ORDER BY shipment_time ASC
+    </select>
+
+    <select id="selectCountByStatus" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM finance_orders
+        WHERE tenant_id = #{tenantId}
+        AND order_status = #{orderStatus}
+    </select>
+
+    <update id="softDeleteByDate">
+        UPDATE finance_orders
+        SET is_deleted = 1, update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+        AND DATE(order_time) &lt; #{beforeDate}
+    </update>
+
+</mapper>

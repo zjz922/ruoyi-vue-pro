@@ -324,6 +324,6 @@ RuoYi-Vue-Pro完整版Vue3管理员端共包含**17个功能模块**、**727个�
 ## 参考资料
 
 - [RuoYi-Vue-Pro官方文档](https://doc.iocoder.cn/)
-- [RuoYi-Vue-Pro GitHub仓库](https://github.com/YunaiV/ruoyi-vue-pro)
-- [yudao-ui-admin-vue3 GitHub仓库](https://github.com/yudaocode/yudao-ui-admin-vue3)
+- [RuoYi-Vue-Pro GitHub仓库](https://github.com/flashsaas/flash-saas)
+- [flash-ui-admin-vue3 GitHub仓库](https://github.com/flashcode/flash-ui-admin-vue3)
 - [闪电帐PRO开发规范指南](../README.md)

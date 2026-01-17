@@ -1,7 +1,7 @@
 <p align="center">
  <img src="https://img.shields.io/badge/Spring%20Boot-2.7.18-blue.svg" alt="Downloads">
  <img src="https://img.shields.io/badge/Vue-3.2-blue.svg" alt="Downloads">
- <img src="https://img.shields.io/github/license/YunaiV/ruoyi-vue-pro"/>
+ <img src="https://img.shields.io/github/license/flashsaas/flash-saas"/>
 </p>
 
 **严肃声明：现在、未来都不会有商业版本，所有代码全部开源!！**
@@ -13,8 +13,8 @@
 
 ## 🐶 新手必读
 
-* 演示地址【Vue3 + element-plus】：<http://dashboard-vue3.yudao.iocoder.cn>
-* 演示地址【Vue3 + vben(ant-design-vue)】：<http://dashboard-vben.yudao.iocoder.cn>
+* 演示地址【Vue3 + element-plus】：<http://dashboard-vue3.flash.iocoder.cn>
+* 演示地址【Vue3 + vben(ant-design-vue)】：<http://dashboard-vben.flash.iocoder.cn>
 * 启动文档：<https://doc.iocoder.cn/quick-start/>
 * 视频教程：<https://doc.iocoder.cn/video/>
 
@@ -22,17 +22,17 @@
 
 | 版本                                                                  | JDK 8 + Spring Boot 2.7                                                   | JDK 17/21 + Spring Boot 3.2                                                           |
 |---------------------------------------------------------------------|---------------------------------------------------------------------------|---------------------------------------------------------------------------------------|
-| 【完整版】[ruoyi-vue-pro](https://gitee.com/zhijiantianya/ruoyi-vue-pro) | [`master`](https://gitee.com/zhijiantianya/ruoyi-vue-pro/tree/master/) 分支 | [`master-jdk17`](https://gitee.com/zhijiantianya/ruoyi-vue-pro/tree/master-jdk17/) 分支 |
-| 【精简版】[yudao-boot-mini](https://gitee.com/yudaocode/yudao-boot-mini) | [`master`](https://gitee.com/yudaocode/yudao-boot-mini/tree/master/) 分支   | [`master-jdk17`](https://gitee.com/yudaocode/yudao-boot-mini/tree/master-jdk17/) 分支   |
+| 【完整版】[flash-saas](https://gitee.com/zhijiantianya/flash-saas) | [`master`](https://gitee.com/zhijiantianya/flash-saas/tree/master/) 分支 | [`master-jdk17`](https://gitee.com/zhijiantianya/flash-saas/tree/master-jdk17/) 分支 |
+| 【精简版】[flash-boot-mini](https://gitee.com/flashcode/flash-boot-mini) | [`master`](https://gitee.com/flashcode/flash-boot-mini/tree/master/) 分支   | [`master-jdk17`](https://gitee.com/flashcode/flash-boot-mini/tree/master-jdk17/) 分支   |
 
 * 【完整版】：包括系统功能、基础设施、会员中心、数据报表、工作流程、商城系统、微信公众号、CRM、ERP 等功能
 * 【精简版】：只包括系统功能、基础设施功能，不包括会员中心、数据报表、工作流程、商城系统、微信公众号、CRM、ERP 等功能
 
 ## 🐯 平台简介
 
-**芋道**，以开发者为中心，打造中国第一流的快速开发平台，全部开源，个人与企业可 100% 免费使用。
+**闪电帐**，以开发者为中心，打造中国第一流的快速开发平台，全部开源，个人与企业可 100% 免费使用。
 
-![架构图](/.image/common/ruoyi-vue-pro-architecture.png)
+![架构图](/.image/common/flash-saas-architecture.png)
 
 * Java 后端：`master` 分支为 JDK 8 + Spring Boot 2.7，`master-jdk17` 分支为 JDK 17/21 + Spring Boot 3.2
 * 管理后台的电脑端：Vue3 提供 `element-plus`、`vben(ant-design-vue)` 两个版本
@@ -43,13 +43,13 @@
 
 ## 😎 开源协议
 
-本项目采用比 Apache 2.0 更宽松的 [MIT License](https://gitee.com/zhijiantianya/ruoyi-vue-pro/blob/master/LICENSE) 开源协议，个人与企业可 100% 免费使用，不用保留类作者、Copyright 信息。
+本项目采用比 Apache 2.0 更宽松的 [MIT License](https://gitee.com/zhijiantianya/flash-saas/blob/master/LICENSE) 开源协议，个人与企业可 100% 免费使用，不用保留类作者、Copyright 信息。
 
 ## 🐼 内置功能
 
 系统内置多种多种业务功能，可以用于快速你的业务系统：
 
-![功能分层](/.image/common/ruoyi-vue-pro-biz.png)
+![功能分层](/.image/common/flash-saas-biz.png)
 
 * 通用模块（必选）：系统功能、基础设施
 * 通用模块（可选）：工作流程、支付系统、数据报表、会员中心
@@ -108,12 +108,12 @@
 
 | 项目                    | 说明                 |
 |-----------------------|--------------------|
-| `yudao-dependencies`  | Maven 依赖版本管理       |
-| `yudao-framework`     | Java 框架拓展          |
-| `yudao-server`        | 管理后台 + 用户 APP 的服务端 |
-| `yudao-module-system` | 系统功能的 Module 模块    |
-| `yudao-module-infra`  | 基础设施的 Module 模块    |
-| `yudao-module-finance`| 财务模块的 Module 模块（闪电帐PRO）|
+| `flash-dependencies`  | Maven 依赖版本管理       |
+| `flash-framework`     | Java 框架拓展          |
+| `flash-server`        | 管理后台 + 用户 APP 的服务端 |
+| `flash-module-system` | 系统功能的 Module 模块    |
+| `flash-module-infra`  | 基础设施的 Module 模块    |
+| `flash-module-finance`| 财务模块的 Module 模块（闪电帐PRO）|
 
 ### 框架
 
@@ -153,7 +153,7 @@
 │                          ▼                                      │
 │           ┌─────────────────────────────┐                       │
 │           │    Java后端 (RuoYi框架)      │                       │
-│           │  yudao-module-finance        │                       │
+│           │  flash-module-finance        │                       │
 │           └──────────────┬──────────────┘                       │
 │                          │                                      │
 │           ┌──────────────┼──────────────┐                       │
@@ -184,13 +184,13 @@
 ### 2.1 Java后端模块结构
 
 ```
-ruoyi-vue-pro-scaffold/
-├── yudao-dependencies/             # 依赖版本管理
-├── yudao-framework/                # 框架核心
-├── yudao-module-system/            # 系统管理模块
-├── yudao-module-infra/             # 基础设施模块
-├── yudao-module-finance/           # 财务模块（闪电帐PRO）
-│   └── src/main/java/cn/iocoder/yudao/module/finance/
+flash-saas-scaffold/
+├── flash-dependencies/             # 依赖版本管理
+├── flash-framework/                # 框架核心
+├── flash-module-system/            # 系统管理模块
+├── flash-module-infra/             # 基础设施模块
+├── flash-module-finance/           # 财务模块（闪电帐PRO）
+│   └── src/main/java/cn/iocoder/flash/module/finance/
 │       ├── controller/admin/       # 管理员端Controller
 │       │   ├── order/              # 订单管理
 │       │   ├── cashflow/           # 资金流水
@@ -205,14 +205,14 @@ ruoyi-vue-pro-scaffold/
 │       ├── service/                # 业务逻辑层
 │       ├── convert/                # 对象转换
 │       └── enums/                  # 枚举定义
-├── yudao-ui-tenant-react/          # React租户端
-└── yudao-server/                   # 启动模块
+├── flash-ui-tenant-react/          # React租户端
+└── flash-server/                   # 启动模块
 ```
 
 ### 2.2 Vue3管理员端目录结构
 
 ```
-yudao-ui-admin-vue3/
+flash-ui-admin-vue3/
 ├── src/
 │   ├── api/                        # API接口定义（按模块划分）
 │   │   ├── finance/                # 财务模块API（新增）
@@ -234,7 +234,7 @@ yudao-ui-admin-vue3/
 ### 2.3 React租户端目录结构
 
 ```
-yudao-ui-tenant-react/
+flash-ui-tenant-react/
 ├── client/                         # 前端代码
 │   └── src/
 │       ├── components/             # 公共组件
@@ -268,7 +268,7 @@ yudao-ui-tenant-react/
 | **常量文件** | camelCase | `constants.ts` |
 | **类型定义** | camelCase | `types.ts` |
 | **Java类** | PascalCase | `OrderController.java` |
-| **Java包名** | 全小写 | `cn.iocoder.yudao.module.finance` |
+| **Java包名** | 全小写 | `cn.iocoder.flash.module.finance` |
 
 ### 3.2 API接口规范（RESTful风格）
 

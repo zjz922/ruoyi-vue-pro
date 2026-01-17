@@ -3,35 +3,35 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>cn.iocoder.boot</groupId>
-    <artifactId>yudao</artifactId>
+    <groupId>cn.flashsaas</groupId>
+    <artifactId>flash</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
     <modules>
-        <module>yudao-dependencies</module>
-        <module>yudao-framework</module>
+        <module>flash-dependencies</module>
+        <module>flash-framework</module>
         <!-- Server 主项目 -->
-        <module>yudao-server</module>
+        <module>flash-server</module>
         <!-- 各种 module 拓展 -->
-        <module>yudao-module-system</module>
-        <module>yudao-module-infra</module>
-        <module>yudao-module-finance</module>
-<!--        <module>yudao-module-member</module>-->
-<!--        <module>yudao-module-bpm</module>-->
-<!--        <module>yudao-module-report</module>-->
-<!--        <module>yudao-module-mp</module>-->
-<!--        <module>yudao-module-pay</module>-->
-<!--        <module>yudao-module-mall</module>-->
-<!--        <module>yudao-module-crm</module>-->
-<!--        <module>yudao-module-erp</module>-->
-<!--        <module>yudao-module-iot</module>-->
+        <module>flash-module-system</module>
+        <module>flash-module-infra</module>
+        <module>flash-module-finance</module>
+<!--        <module>flash-module-member</module>-->
+<!--        <module>flash-module-bpm</module>-->
+<!--        <module>flash-module-report</module>-->
+<!--        <module>flash-module-mp</module>-->
+<!--        <module>flash-module-pay</module>-->
+<!--        <module>flash-module-mall</module>-->
+<!--        <module>flash-module-crm</module>-->
+<!--        <module>flash-module-erp</module>-->
+<!--        <module>flash-module-iot</module>-->
         <!-- AI 大模型的开启，请参考 https://doc.iocoder.cn/ai/build/ 文档，对 JDK 版本要要求！ -->
-<!--        <module>yudao-module-ai</module>-->
+<!--        <module>flash-module-ai</module>-->
     </modules>
 
     <name>${project.artifactId}</name>
     <description>芋道项目基础脚手架</description>
-    <url>https://github.com/YunaiV/ruoyi-vue-pro</url>
+    <url>https://github.com/YunaiV/flash-saas</url>
 
     <properties>
         <revision>2025.12-jdk8-SNAPSHOT</revision>
@@ -52,8 +52,8 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>cn.iocoder.boot</groupId>
-                <artifactId>yudao-dependencies</artifactId>
+                <groupId>cn.flashsaas</groupId>
+                <artifactId>flash-dependencies</artifactId>
                 <version>${revision}</version>
                 <type>pom</type>
                 <scope>import</scope>

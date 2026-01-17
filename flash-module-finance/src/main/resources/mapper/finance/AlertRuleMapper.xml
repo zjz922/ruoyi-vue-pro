@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.flash.module.finance.dal.mysql.AlertRuleMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.iocoder.flash.module.finance.dal.dataobject.AlertRuleDO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="shop_id" property="shopId"/>
+        <result column="rule_name" property="ruleName"/>
+        <result column="rule_code" property="ruleCode"/>
+        <result column="rule_type" property="ruleType"/>
+        <result column="alert_type" property="alertType"/>
+        <result column="alert_level" property="alertLevel"/>
+        <result column="condition_config" property="conditionConfig"/>
+        <result column="threshold_value" property="thresholdValue"/>
+        <result column="threshold_unit" property="thresholdUnit"/>
+        <result column="check_interval" property="checkInterval"/>
+        <result column="notify_channels" property="notifyChannels"/>
+        <result column="notify_users" property="notifyUsers"/>
+        <result column="status" property="status"/>
+        <result column="description" property="description"/>
+        <result column="last_check_time" property="lastCheckTime"/>
+        <result column="last_alert_time" property="lastAlertTime"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, shop_id, rule_name, rule_code, rule_type, alert_type, alert_level,
+        condition_config, threshold_value, threshold_unit, check_interval, notify_channels,
+        notify_users, status, description, last_check_time, last_alert_time,
+        creator, create_time, updater, update_time, deleted
+    </sql>
+
+    <!-- 根据规则编码查询 -->
+    <select id="selectByRuleCode" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_alert_rule
+        WHERE rule_code = #{ruleCode} AND tenant_id = #{tenantId} AND deleted = 0
+    </select>
+
+    <!-- 查询启用的规则列表 -->
+    <select id="selectEnabledRules" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_alert_rule
+        WHERE deleted = 0 AND status = 1
+        <if test="tenantId != null">
+            AND (tenant_id = #{tenantId} OR tenant_id = 0)
+        </if>
+        <if test="shopId != null">
+            AND (shop_id = #{shopId} OR shop_id IS NULL)
+        </if>
+        <if test="alertType != null and alertType != ''">
+            AND alert_type = #{alertType}
+        </if>
+        ORDER BY alert_level DESC, create_time ASC
+    </select>
+
+    <!-- 查询需要检查的规则 -->
+    <select id="selectRulesToCheck" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_alert_rule
+        WHERE deleted = 0 AND status = 1
+          AND (last_check_time IS NULL 
+               OR DATE_ADD(last_check_time, INTERVAL check_interval MINUTE) &lt;= NOW())
+        ORDER BY last_check_time ASC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 分页查询 -->
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM finance_alert_rule
+        WHERE deleted = 0
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="shopId != null">
+            AND shop_id = #{shopId}
+        </if>
+        <if test="ruleType != null and ruleType != ''">
+            AND rule_type = #{ruleType}
+        </if>
+        <if test="alertType != null and alertType != ''">
+            AND alert_type = #{alertType}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="ruleName != null and ruleName != ''">
+            AND rule_name LIKE CONCAT('%', #{ruleName}, '%')
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 更新最后检查时间 -->
+    <update id="updateLastCheckTime">
+        UPDATE finance_alert_rule
+        SET last_check_time = NOW(),
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 更新最后预警时间 -->
+    <update id="updateLastAlertTime">
+        UPDATE finance_alert_rule
+        SET last_alert_time = NOW(),
+            update_time = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 批量更新状态 -->
+    <update id="batchUpdateStatus">
+        UPDATE finance_alert_rule
+        SET status = #{status},
+            updater = #{updater},
+            update_time = NOW()
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND deleted = 0
+    </update>
+
+</mapper>

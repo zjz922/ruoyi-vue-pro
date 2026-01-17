@@ -293,7 +293,7 @@ SELECT COUNT(*) FROM finance_sync_log;
 
 ## GitHub提交
 
-- **仓库地址**: https://github.com/zjz922/ruoyi-vue-pro
+- **仓库地址**: https://github.com/zjz922/flash-saas
 - **提交ID**: f95d63b6d7
 - **提交信息**: fix: 修复数据同步核心逻辑，实现真实数据读取和存储
 

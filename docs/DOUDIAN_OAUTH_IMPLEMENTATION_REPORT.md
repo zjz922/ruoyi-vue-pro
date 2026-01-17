@@ -282,6 +282,6 @@ Content-Type: application/json
 
 ## 十、GitHub提交
 
-- **仓库地址**: https://github.com/zjz922/ruoyi-vue-pro
+- **仓库地址**: https://github.com/zjz922/flash-saas
 - **提交ID**: e99cbf517e
 - **提交信息**: feat(finance): 实现抖店OAuth授权流程
