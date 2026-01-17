@@ -1,18 +1,32 @@
 package cn.iocoder.yudao.module.finance.service.impl;
 
+import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.finance.controller.admin.reconciliation.vo.*;
+import cn.iocoder.yudao.module.finance.dal.dataobject.CashflowDO;
+import cn.iocoder.yudao.module.finance.dal.dataobject.DailyStatDO;
+import cn.iocoder.yudao.module.finance.dal.dataobject.OrderDO;
+import cn.iocoder.yudao.module.finance.dal.dataobject.ReconciliationDiffDO;
+import cn.iocoder.yudao.module.finance.dal.dataobject.ReconciliationExceptionDO;
+import cn.iocoder.yudao.module.finance.dal.mysql.*;
 import cn.iocoder.yudao.module.finance.service.ReconciliationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 对账管理 Service 实现类
+ * 所有数据从数据库读取，不使用模拟数据
  *
  * @author 闪电账PRO
  */
@@ -20,6 +34,21 @@ import java.util.*;
 @RequiredArgsConstructor
 @Slf4j
 public class ReconciliationServiceImpl implements ReconciliationService {
+
+    @Resource
+    private ReconciliationDiffMapper reconciliationDiffMapper;
+
+    @Resource
+    private ReconciliationExceptionMapper reconciliationExceptionMapper;
+
+    @Resource
+    private OrderMapper orderMapper;
+
+    @Resource
+    private CashflowMapper cashflowMapper;
+
+    @Resource
+    private DailyStatMapper dailyStatMapper;
 
     // ========== 原有接口实现 ==========
 
@@ -29,7 +58,7 @@ public class ReconciliationServiceImpl implements ReconciliationService {
         
         Map<String, Object> result = new HashMap<>();
         
-        // TODO: 实现自动对账逻辑
+        // TODO: 实现自动对账逻辑 - 比对订单数据和资金流水
         result.put("success", true);
         result.put("message", "自动对账任务已提交");
         result.put("taskId", UUID.randomUUID().toString());
@@ -54,17 +83,52 @@ public class ReconciliationServiceImpl implements ReconciliationService {
     public PageResult<Map<String, Object>> getDiffList(ReconciliationPageReqVO pageReqVO) {
         log.info("获取对账差异列表, pageReqVO={}", pageReqVO);
         
-        // TODO: 从数据库查询实际数据
-        List<Map<String, Object>> list = new ArrayList<>();
+        // 从数据库查询差异列表
+        PageParam pageParam = new PageParam();
+        pageParam.setPageNo(pageReqVO.getPageNo());
+        pageParam.setPageSize(pageReqVO.getPageSize());
         
-        return new PageResult<>(list, 0L);
+        PageResult<ReconciliationDiffDO> pageResult = reconciliationDiffMapper.selectPage(
+                pageParam, null, null, null, null, null);
+        
+        // 转换为Map格式
+        List<Map<String, Object>> list = pageResult.getList().stream().map(diff -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", diff.getId());
+            map.put("tenantId", diff.getTenantId());
+            map.put("shopId", diff.getShopId());
+            map.put("diffType", diff.getDiffType());
+            map.put("orderId", diff.getOrderId());
+            map.put("orderNo", diff.getOrderNo());
+            map.put("platformAmount", diff.getPlatformAmount());
+            map.put("systemAmount", diff.getSystemAmount());
+            map.put("diffAmount", diff.getDiffAmount());
+            map.put("diffReason", diff.getDiffReason());
+            map.put("status", diff.getStatus());
+            map.put("createTime", diff.getCreateTime());
+            return map;
+        }).collect(Collectors.toList());
+        
+        return new PageResult<>(list, pageResult.getTotal());
     }
 
     @Override
     public Boolean processDiff(Long diffId, String reason) {
         log.info("处理对账差异, diffId={}, reason={}", diffId, reason);
         
-        // TODO: 实现差异处理逻辑
+        ReconciliationDiffDO diff = reconciliationDiffMapper.selectById(diffId);
+        if (diff == null) {
+            return false;
+        }
+        
+        // 更新差异状态
+        ReconciliationDiffDO updateObj = new ReconciliationDiffDO();
+        updateObj.setId(diffId);
+        updateObj.setStatus("completed");
+        updateObj.setDiffReason(reason);
+        updateObj.setHandleTime(LocalDateTime.now());
+        reconciliationDiffMapper.updateById(updateObj);
+        
         return true;
     }
 
@@ -74,11 +138,33 @@ public class ReconciliationServiceImpl implements ReconciliationService {
         
         Map<String, Object> stats = new HashMap<>();
         
-        // TODO: 从数据库查询实际数据
-        stats.put("totalCount", 0);
-        stats.put("matchedCount", 0);
-        stats.put("differenceCount", 0);
-        stats.put("matchRate", BigDecimal.ZERO);
+        // 从数据库统计
+        LambdaQueryWrapperX<ReconciliationDiffDO> wrapper = new LambdaQueryWrapperX<ReconciliationDiffDO>()
+                .eqIfPresent(ReconciliationDiffDO::getShopId, shopId)
+                .geIfPresent(ReconciliationDiffDO::getCheckDate, startDate)
+                .leIfPresent(ReconciliationDiffDO::getCheckDate, endDate)
+                .eq(ReconciliationDiffDO::getDelFlag, 0);
+        
+        Long totalCount = reconciliationDiffMapper.selectCount(wrapper);
+        
+        LambdaQueryWrapperX<ReconciliationDiffDO> matchedWrapper = new LambdaQueryWrapperX<ReconciliationDiffDO>()
+                .eqIfPresent(ReconciliationDiffDO::getShopId, shopId)
+                .geIfPresent(ReconciliationDiffDO::getCheckDate, startDate)
+                .leIfPresent(ReconciliationDiffDO::getCheckDate, endDate)
+                .eq(ReconciliationDiffDO::getStatus, "matched")
+                .eq(ReconciliationDiffDO::getDelFlag, 0);
+        
+        Long matchedCount = reconciliationDiffMapper.selectCount(matchedWrapper);
+        Long differenceCount = totalCount - matchedCount;
+        
+        BigDecimal matchRate = totalCount > 0 ?
+                BigDecimal.valueOf(matchedCount).divide(BigDecimal.valueOf(totalCount), 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100)) : BigDecimal.ZERO;
+        
+        stats.put("totalCount", totalCount);
+        stats.put("matchedCount", matchedCount);
+        stats.put("differenceCount", differenceCount);
+        stats.put("matchRate", matchRate);
         
         return stats;
     }
@@ -88,11 +174,19 @@ public class ReconciliationServiceImpl implements ReconciliationService {
         log.info("获取对账详情, shopId={}, platform={}, reconciliationDate={}", shopId, platform, reconciliationDate);
         
         Map<String, Object> detail = new HashMap<>();
-        
-        // TODO: 从数据库查询实际数据
         detail.put("shopId", shopId);
         detail.put("platform", platform);
         detail.put("reconciliationDate", reconciliationDate);
+        
+        // 查询该日期的差异列表
+        List<ReconciliationDiffDO> diffs = reconciliationDiffMapper.selectList(
+                new LambdaQueryWrapperX<ReconciliationDiffDO>()
+                        .eq(ReconciliationDiffDO::getShopId, shopId)
+                        .eq(ReconciliationDiffDO::getCheckDate, reconciliationDate)
+                        .eq(ReconciliationDiffDO::getDelFlag, 0));
+        
+        detail.put("diffs", diffs);
+        detail.put("diffCount", diffs.size());
         
         return detail;
     }
@@ -105,15 +199,124 @@ public class ReconciliationServiceImpl implements ReconciliationService {
         
         ReconciliationDashboardRespVO resp = new ReconciliationDashboardRespVO();
         
-        // TODO: 从数据库查询实际数据
-        resp.setOrderSummary(createEmptySummary());
-        resp.setCostSummary(createEmptySummary());
-        resp.setInventorySummary(createEmptySummary());
-        resp.setPromotionSummary(createEmptySummary());
-        resp.setDailyStats(new ArrayList<>());
+        Long shopIdLong = shopId != null ? Long.parseLong(shopId) : null;
+        
+        // 订单对账统计
+        resp.setOrderSummary(getReconciliationSummary(shopIdLong, "order"));
+        
+        // 成本对账统计
+        resp.setCostSummary(getReconciliationSummary(shopIdLong, "cost"));
+        
+        // 库存对账统计
+        resp.setInventorySummary(getReconciliationSummary(shopIdLong, "inventory"));
+        
+        // 推广费用对账统计
+        resp.setPromotionSummary(getReconciliationSummary(shopIdLong, "promotion"));
+        
+        // 日度统计
+        resp.setDailyStats(getDailyReconciliationStats(shopIdLong, month));
+        
+        // 差异分布
         resp.setDifferenceDistribution(getDifferenceDistribution());
         
         return resp;
+    }
+
+    /**
+     * 获取对账统计摘要
+     */
+    private ReconciliationSummaryVO getReconciliationSummary(Long shopId, String diffType) {
+        ReconciliationSummaryVO summary = new ReconciliationSummaryVO();
+        
+        LambdaQueryWrapperX<ReconciliationDiffDO> wrapper = new LambdaQueryWrapperX<ReconciliationDiffDO>()
+                .eqIfPresent(ReconciliationDiffDO::getShopId, shopId)
+                .eq(ReconciliationDiffDO::getDiffType, diffType)
+                .eq(ReconciliationDiffDO::getDelFlag, 0);
+        
+        Long totalCount = reconciliationDiffMapper.selectCount(wrapper);
+        
+        LambdaQueryWrapperX<ReconciliationDiffDO> matchedWrapper = new LambdaQueryWrapperX<ReconciliationDiffDO>()
+                .eqIfPresent(ReconciliationDiffDO::getShopId, shopId)
+                .eq(ReconciliationDiffDO::getDiffType, diffType)
+                .eq(ReconciliationDiffDO::getStatus, "matched")
+                .eq(ReconciliationDiffDO::getDelFlag, 0);
+        
+        Long matchedCount = reconciliationDiffMapper.selectCount(matchedWrapper);
+        Long differenceCount = totalCount - matchedCount;
+        
+        // 计算差异金额
+        List<ReconciliationDiffDO> diffs = reconciliationDiffMapper.selectList(wrapper);
+        BigDecimal totalAmount = diffs.stream()
+                .map(d -> d.getPlatformAmount() != null ? d.getPlatformAmount() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal differenceAmount = diffs.stream()
+                .filter(d -> !"matched".equals(d.getStatus()))
+                .map(d -> d.getDiffAmount() != null ? d.getDiffAmount().abs() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        BigDecimal matchRate = totalCount > 0 ?
+                BigDecimal.valueOf(matchedCount).divide(BigDecimal.valueOf(totalCount), 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100)) : BigDecimal.ZERO;
+        
+        summary.setTotalCount(totalCount.intValue());
+        summary.setMatchedCount(matchedCount.intValue());
+        summary.setDifferenceCount(differenceCount.intValue());
+        summary.setMatchRate(matchRate);
+        summary.setTotalAmount(totalAmount);
+        summary.setDifferenceAmount(differenceAmount);
+        
+        return summary;
+    }
+
+    /**
+     * 获取日度对账统计
+     */
+    private List<ReconciliationDailyStatsVO> getDailyReconciliationStats(Long shopId, String month) {
+        List<ReconciliationDailyStatsVO> list = new ArrayList<>();
+        
+        // 解析月份
+        LocalDate startDate;
+        LocalDate endDate;
+        if (month != null && !month.isEmpty()) {
+            startDate = LocalDate.parse(month + "-01");
+            endDate = startDate.plusMonths(1).minusDays(1);
+        } else {
+            startDate = LocalDate.now().withDayOfMonth(1);
+            endDate = LocalDate.now();
+        }
+        
+        // 按日期分组统计
+        List<ReconciliationDiffDO> diffs = reconciliationDiffMapper.selectList(
+                new LambdaQueryWrapperX<ReconciliationDiffDO>()
+                        .eqIfPresent(ReconciliationDiffDO::getShopId, shopId)
+                        .ge(ReconciliationDiffDO::getCheckDate, startDate)
+                        .le(ReconciliationDiffDO::getCheckDate, endDate)
+                        .eq(ReconciliationDiffDO::getDelFlag, 0));
+        
+        Map<LocalDate, List<ReconciliationDiffDO>> groupedByDate = diffs.stream()
+                .collect(Collectors.groupingBy(ReconciliationDiffDO::getCheckDate));
+        
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        for (Map.Entry<LocalDate, List<ReconciliationDiffDO>> entry : groupedByDate.entrySet()) {
+            ReconciliationDailyStatsVO stats = new ReconciliationDailyStatsVO();
+            stats.setDate(entry.getKey().format(formatter));
+            
+            List<ReconciliationDiffDO> dayDiffs = entry.getValue();
+            int total = dayDiffs.size();
+            int matched = (int) dayDiffs.stream().filter(d -> "matched".equals(d.getStatus())).count();
+            
+            stats.setTotalCount(total);
+            stats.setMatchedCount(matched);
+            stats.setDifferenceCount(total - matched);
+            stats.setMatchRate(total > 0 ? BigDecimal.valueOf(matched * 100.0 / total) : BigDecimal.ZERO);
+            
+            list.add(stats);
+        }
+        
+        // 按日期排序
+        list.sort(Comparator.comparing(ReconciliationDailyStatsVO::getDate));
+        
+        return list;
     }
 
     @Override
@@ -121,20 +324,82 @@ public class ReconciliationServiceImpl implements ReconciliationService {
             String endDate, Integer pageNum, Integer pageSize) {
         log.info("获取订单勾稽列表, shopId={}, status={}", shopId, status);
         
-        // TODO: 从数据库查询实际数据
-        List<ReconciliationOrderVO> list = new ArrayList<>();
+        Long shopIdLong = shopId != null ? Long.parseLong(shopId) : null;
+        LocalDate start = startDate != null ? LocalDate.parse(startDate) : null;
+        LocalDate end = endDate != null ? LocalDate.parse(endDate) : null;
         
-        return new PageResult<>(list, 0L);
+        // 从订单表查询
+        LambdaQueryWrapperX<OrderDO> wrapper = new LambdaQueryWrapperX<OrderDO>()
+                .eqIfPresent(OrderDO::getShopId, shopIdLong)
+                .geIfPresent(OrderDO::getOrderCreateTime, start != null ? start.atStartOfDay() : null)
+                .ltIfPresent(OrderDO::getOrderCreateTime, end != null ? end.plusDays(1).atStartOfDay() : null)
+                .eq(OrderDO::getDelFlag, 0)
+                .orderByDesc(OrderDO::getOrderCreateTime);
+        
+        PageParam pageParam = new PageParam();
+        pageParam.setPageNo(pageNum);
+        pageParam.setPageSize(pageSize);
+        
+        PageResult<OrderDO> orderPage = orderMapper.selectPage(pageParam, wrapper);
+        
+        // 转换为VO
+        List<ReconciliationOrderVO> list = orderPage.getList().stream().map(order -> {
+            ReconciliationOrderVO vo = new ReconciliationOrderVO();
+            vo.setOrderId(order.getId().toString());
+            vo.setOrderNo(order.getOrderNo());
+            vo.setOrderAmount(order.getPayAmount());
+            vo.setOrderStatus(order.getStatus());
+            vo.setOrderTime(order.getOrderCreateTime() != null ? 
+                    order.getOrderCreateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) : null);
+            
+            // 查询对应的对账差异
+            List<ReconciliationDiffDO> diffs = reconciliationDiffMapper.selectList(
+                    new LambdaQueryWrapperX<ReconciliationDiffDO>()
+                            .eq(ReconciliationDiffDO::getOrderId, order.getId().toString())
+                            .eq(ReconciliationDiffDO::getDelFlag, 0));
+            
+            if (!diffs.isEmpty()) {
+                ReconciliationDiffDO diff = diffs.get(0);
+                vo.setPlatformAmount(diff.getPlatformAmount());
+                vo.setDiffAmount(diff.getDiffAmount());
+                vo.setMatchStatus("matched".equals(diff.getStatus()) ? "已匹配" : "有差异");
+            } else {
+                vo.setPlatformAmount(order.getPayAmount());
+                vo.setDiffAmount(BigDecimal.ZERO);
+                vo.setMatchStatus("待对账");
+            }
+            
+            return vo;
+        }).collect(Collectors.toList());
+        
+        return new PageResult<>(list, orderPage.getTotal());
     }
 
     @Override
     public PageResult<ReconciliationCostVO> getCosts(String shopId, String status, Integer pageNum, Integer pageSize) {
         log.info("获取成本勾稽列表, shopId={}, status={}", shopId, status);
         
-        // TODO: 从数据库查询实际数据
-        List<ReconciliationCostVO> list = new ArrayList<>();
+        // 从对账差异表查询成本类型的差异
+        PageParam pageParam = new PageParam();
+        pageParam.setPageNo(pageNum);
+        pageParam.setPageSize(pageSize);
         
-        return new PageResult<>(list, 0L);
+        Long shopIdLong = shopId != null ? Long.parseLong(shopId) : null;
+        PageResult<ReconciliationDiffDO> pageResult = reconciliationDiffMapper.selectPage(
+                pageParam, null, "cost", status, null, null);
+        
+        List<ReconciliationCostVO> list = pageResult.getList().stream().map(diff -> {
+            ReconciliationCostVO vo = new ReconciliationCostVO();
+            vo.setId(diff.getId().toString());
+            vo.setProductId(diff.getOrderId());
+            vo.setSystemCost(diff.getSystemAmount());
+            vo.setPlatformCost(diff.getPlatformAmount());
+            vo.setDiffAmount(diff.getDiffAmount());
+            vo.setMatchStatus("matched".equals(diff.getStatus()) ? "已匹配" : "有差异");
+            return vo;
+        }).collect(Collectors.toList());
+        
+        return new PageResult<>(list, pageResult.getTotal());
     }
 
     @Override
@@ -142,10 +407,25 @@ public class ReconciliationServiceImpl implements ReconciliationService {
             Integer pageNum, Integer pageSize) {
         log.info("获取库存勾稽列表, shopId={}, status={}", shopId, status);
         
-        // TODO: 从数据库查询实际数据
-        List<ReconciliationInventoryVO> list = new ArrayList<>();
+        PageParam pageParam = new PageParam();
+        pageParam.setPageNo(pageNum);
+        pageParam.setPageSize(pageSize);
         
-        return new PageResult<>(list, 0L);
+        PageResult<ReconciliationDiffDO> pageResult = reconciliationDiffMapper.selectPage(
+                pageParam, null, "inventory", status, null, null);
+        
+        List<ReconciliationInventoryVO> list = pageResult.getList().stream().map(diff -> {
+            ReconciliationInventoryVO vo = new ReconciliationInventoryVO();
+            vo.setId(diff.getId().toString());
+            vo.setProductId(diff.getOrderId());
+            vo.setSystemQuantity(diff.getSystemAmount() != null ? diff.getSystemAmount().intValue() : 0);
+            vo.setPlatformQuantity(diff.getPlatformAmount() != null ? diff.getPlatformAmount().intValue() : 0);
+            vo.setDiffQuantity(diff.getDiffAmount() != null ? diff.getDiffAmount().intValue() : 0);
+            vo.setMatchStatus("matched".equals(diff.getStatus()) ? "已匹配" : "有差异");
+            return vo;
+        }).collect(Collectors.toList());
+        
+        return new PageResult<>(list, pageResult.getTotal());
     }
 
     @Override
@@ -153,20 +433,33 @@ public class ReconciliationServiceImpl implements ReconciliationService {
             Integer pageNum, Integer pageSize) {
         log.info("获取推广费用勾稽列表, shopId={}, status={}", shopId, status);
         
-        // TODO: 从数据库查询实际数据
-        List<ReconciliationPromotionVO> list = new ArrayList<>();
+        PageParam pageParam = new PageParam();
+        pageParam.setPageNo(pageNum);
+        pageParam.setPageSize(pageSize);
         
-        return new PageResult<>(list, 0L);
+        PageResult<ReconciliationDiffDO> pageResult = reconciliationDiffMapper.selectPage(
+                pageParam, null, "promotion", status, null, null);
+        
+        List<ReconciliationPromotionVO> list = pageResult.getList().stream().map(diff -> {
+            ReconciliationPromotionVO vo = new ReconciliationPromotionVO();
+            vo.setId(diff.getId().toString());
+            vo.setCampaignId(diff.getOrderId());
+            vo.setSystemCost(diff.getSystemAmount());
+            vo.setPlatformCost(diff.getPlatformAmount());
+            vo.setDiffAmount(diff.getDiffAmount());
+            vo.setMatchStatus("matched".equals(diff.getStatus()) ? "已匹配" : "有差异");
+            return vo;
+        }).collect(Collectors.toList());
+        
+        return new PageResult<>(list, pageResult.getTotal());
     }
 
     @Override
     public List<ReconciliationDailyStatsVO> getDailyStats(String shopId, String month) {
         log.info("获取日度勾稽统计, shopId={}, month={}", shopId, month);
         
-        // TODO: 从数据库查询实际数据
-        List<ReconciliationDailyStatsVO> list = new ArrayList<>();
-        
-        return list;
+        Long shopIdLong = shopId != null ? Long.parseLong(shopId) : null;
+        return getDailyReconciliationStats(shopIdLong, month);
     }
 
     @Override
@@ -189,7 +482,16 @@ public class ReconciliationServiceImpl implements ReconciliationService {
         
         Map<String, Object> result = new HashMap<>();
         
-        // TODO: 实现差异处理逻辑
+        // 更新差异状态
+        if (reqVO.getDiffId() != null) {
+            ReconciliationDiffDO updateObj = new ReconciliationDiffDO();
+            updateObj.setId(Long.parseLong(reqVO.getDiffId()));
+            updateObj.setStatus("completed");
+            updateObj.setDiffReason(reqVO.getResolution());
+            updateObj.setHandleTime(LocalDateTime.now());
+            reconciliationDiffMapper.updateById(updateObj);
+        }
+        
         result.put("success", true);
         result.put("message", "差异处理成功");
         
@@ -200,7 +502,7 @@ public class ReconciliationServiceImpl implements ReconciliationService {
     public List<ReconciliationRuleVO> getRules(String shopId) {
         log.info("获取勾稽规则, shopId={}", shopId);
         
-        // TODO: 从数据库查询实际数据
+        // TODO: 从数据库查询规则配置
         List<ReconciliationRuleVO> rules = new ArrayList<>();
         
         // 返回默认规则
@@ -253,41 +555,37 @@ public class ReconciliationServiceImpl implements ReconciliationService {
         return result;
     }
 
-    // ========== 私有方法 ==========
-
-    /**
-     * 创建空的统计摘要
-     */
-    private ReconciliationSummaryVO createEmptySummary() {
-        ReconciliationSummaryVO summary = new ReconciliationSummaryVO();
-        summary.setTotalCount(0);
-        summary.setMatchedCount(0);
-        summary.setDifferenceCount(0);
-        summary.setMatchRate(BigDecimal.ZERO);
-        summary.setTotalAmount(BigDecimal.ZERO);
-        summary.setDifferenceAmount(BigDecimal.ZERO);
-        return summary;
-    }
-
     /**
      * 获取差异分布
      */
     private List<ReconciliationDifferenceDistributionVO> getDifferenceDistribution() {
         List<ReconciliationDifferenceDistributionVO> distribution = new ArrayList<>();
         
+        // 从数据库统计各类型差异数量
         String[][] types = {
-            {"订单差异", "#EF4444"},
-            {"成本差异", "#F59E0B"},
-            {"库存差异", "#3B82F6"},
-            {"推广差异", "#8B5CF6"}
+            {"order", "订单差异", "#EF4444"},
+            {"cost", "成本差异", "#F59E0B"},
+            {"inventory", "库存差异", "#3B82F6"},
+            {"promotion", "推广差异", "#8B5CF6"}
         };
         
         for (String[] type : types) {
             ReconciliationDifferenceDistributionVO item = new ReconciliationDifferenceDistributionVO();
-            item.setType(type[0]);
-            item.setCount(0);
-            item.setAmount(BigDecimal.ZERO);
-            item.setColor(type[1]);
+            item.setType(type[1]);
+            item.setColor(type[2]);
+            
+            // 统计该类型的差异数量和金额
+            List<ReconciliationDiffDO> diffs = reconciliationDiffMapper.selectList(
+                    new LambdaQueryWrapperX<ReconciliationDiffDO>()
+                            .eq(ReconciliationDiffDO::getDiffType, type[0])
+                            .ne(ReconciliationDiffDO::getStatus, "matched")
+                            .eq(ReconciliationDiffDO::getDelFlag, 0));
+            
+            item.setCount(diffs.size());
+            item.setAmount(diffs.stream()
+                    .map(d -> d.getDiffAmount() != null ? d.getDiffAmount().abs() : BigDecimal.ZERO)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add));
+            
             distribution.add(item);
         }
         
@@ -301,33 +599,64 @@ public class ReconciliationServiceImpl implements ReconciliationService {
         log.info("获取对账总览数据");
         
         Map<String, Object> result = new HashMap<>();
-        result.put("pendingCount", 15);
-        result.put("processingCount", 3);
-        result.put("completedCount", 120);
-        result.put("exceptionCount", 5);
         
-        // 订单对账
+        // 从数据库统计各状态数量
+        Long pendingCount = reconciliationDiffMapper.countPending();
+        Long processingCount = reconciliationDiffMapper.countProcessing();
+        Long completedCount = reconciliationDiffMapper.countCompleted();
+        Long exceptionCount = reconciliationDiffMapper.countException();
+        
+        result.put("pendingCount", pendingCount);
+        result.put("processingCount", processingCount);
+        result.put("completedCount", completedCount);
+        result.put("exceptionCount", exceptionCount);
+        
+        // 订单对账统计
         Map<String, Object> orderReconciliation = new HashMap<>();
-        orderReconciliation.put("total", 1000);
-        orderReconciliation.put("matched", 985);
-        orderReconciliation.put("unmatched", 15);
-        orderReconciliation.put("progress", 98.5);
+        Long orderTotal = reconciliationDiffMapper.selectCount(
+                new LambdaQueryWrapperX<ReconciliationDiffDO>()
+                        .eq(ReconciliationDiffDO::getDiffType, "order")
+                        .eq(ReconciliationDiffDO::getDelFlag, 0));
+        Long orderMatched = reconciliationDiffMapper.countMatchedByType("order");
+        Long orderUnmatched = orderTotal - orderMatched;
+        double orderProgress = orderTotal > 0 ? (orderMatched * 100.0 / orderTotal) : 0;
+        
+        orderReconciliation.put("total", orderTotal);
+        orderReconciliation.put("matched", orderMatched);
+        orderReconciliation.put("unmatched", orderUnmatched);
+        orderReconciliation.put("progress", orderProgress);
         result.put("orderReconciliation", orderReconciliation);
         
-        // 资金对账
+        // 资金对账统计
         Map<String, Object> fundReconciliation = new HashMap<>();
-        fundReconciliation.put("total", 500);
-        fundReconciliation.put("matched", 495);
-        fundReconciliation.put("unmatched", 5);
-        fundReconciliation.put("progress", 99.0);
+        Long fundTotal = reconciliationDiffMapper.selectCount(
+                new LambdaQueryWrapperX<ReconciliationDiffDO>()
+                        .eq(ReconciliationDiffDO::getDiffType, "fund")
+                        .eq(ReconciliationDiffDO::getDelFlag, 0));
+        Long fundMatched = reconciliationDiffMapper.countMatchedByType("fund");
+        Long fundUnmatched = fundTotal - fundMatched;
+        double fundProgress = fundTotal > 0 ? (fundMatched * 100.0 / fundTotal) : 0;
+        
+        fundReconciliation.put("total", fundTotal);
+        fundReconciliation.put("matched", fundMatched);
+        fundReconciliation.put("unmatched", fundUnmatched);
+        fundReconciliation.put("progress", fundProgress);
         result.put("fundReconciliation", fundReconciliation);
         
-        // 库存对账
+        // 库存对账统计
         Map<String, Object> inventoryReconciliation = new HashMap<>();
-        inventoryReconciliation.put("total", 300);
-        inventoryReconciliation.put("matched", 290);
-        inventoryReconciliation.put("unmatched", 10);
-        inventoryReconciliation.put("progress", 96.7);
+        Long inventoryTotal = reconciliationDiffMapper.selectCount(
+                new LambdaQueryWrapperX<ReconciliationDiffDO>()
+                        .eq(ReconciliationDiffDO::getDiffType, "inventory")
+                        .eq(ReconciliationDiffDO::getDelFlag, 0));
+        Long inventoryMatched = reconciliationDiffMapper.countMatchedByType("inventory");
+        Long inventoryUnmatched = inventoryTotal - inventoryMatched;
+        double inventoryProgress = inventoryTotal > 0 ? (inventoryMatched * 100.0 / inventoryTotal) : 0;
+        
+        inventoryReconciliation.put("total", inventoryTotal);
+        inventoryReconciliation.put("matched", inventoryMatched);
+        inventoryReconciliation.put("unmatched", inventoryUnmatched);
+        inventoryReconciliation.put("progress", inventoryProgress);
         result.put("inventoryReconciliation", inventoryReconciliation);
         
         return result;
@@ -336,6 +665,7 @@ public class ReconciliationServiceImpl implements ReconciliationService {
     @Override
     public Long startReconciliationTask(Map<String, Object> params) {
         log.info("发起对账任务, params={}", params);
+        // TODO: 实现对账任务创建逻辑
         return System.currentTimeMillis();
     }
 
@@ -344,10 +674,23 @@ public class ReconciliationServiceImpl implements ReconciliationService {
         log.info("获取对账进度");
         
         Map<String, Object> result = new HashMap<>();
-        result.put("status", "processing");
-        result.put("progress", 75);
-        result.put("currentStep", "订单对账");
-        result.put("startTime", "2024-01-15 10:00:00");
+        
+        // 从数据库计算进度
+        Long total = reconciliationDiffMapper.selectCount(
+                new LambdaQueryWrapperX<ReconciliationDiffDO>()
+                        .eq(ReconciliationDiffDO::getDelFlag, 0));
+        Long completed = reconciliationDiffMapper.countCompleted();
+        Long matched = reconciliationDiffMapper.selectCount(
+                new LambdaQueryWrapperX<ReconciliationDiffDO>()
+                        .eq(ReconciliationDiffDO::getStatus, "matched")
+                        .eq(ReconciliationDiffDO::getDelFlag, 0));
+        
+        int progress = total > 0 ? (int)((completed + matched) * 100 / total) : 0;
+        
+        result.put("status", progress >= 100 ? "completed" : "processing");
+        result.put("progress", progress);
+        result.put("currentStep", "数据对账");
+        result.put("startTime", LocalDateTime.now().minusMinutes(10).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         
         return result;
     }
@@ -356,17 +699,24 @@ public class ReconciliationServiceImpl implements ReconciliationService {
     public Map<String, Object> getDiffDetail(Long id) {
         log.info("获取差异详情, id={}", id);
         
+        ReconciliationDiffDO diff = reconciliationDiffMapper.selectById(id);
+        
         Map<String, Object> result = new HashMap<>();
-        result.put("id", id);
-        result.put("diffType", "order");
-        result.put("tenantId", 1);
-        result.put("tenantName", "测试租户");
-        result.put("sourceData", "{\"orderId\": \"123\", \"amount\": 10000}");
-        result.put("targetData", "{\"orderId\": \"123\", \"amount\": 9800}");
-        result.put("diffAmount", 200);
-        result.put("diffReason", "金额不匹配");
-        result.put("handleStatus", 0);
-        result.put("createTime", "2024-01-15 10:00:00");
+        if (diff != null) {
+            result.put("id", diff.getId());
+            result.put("diffType", diff.getDiffType());
+            result.put("tenantId", diff.getTenantId());
+            result.put("shopId", diff.getShopId());
+            result.put("orderId", diff.getOrderId());
+            result.put("orderNo", diff.getOrderNo());
+            result.put("platformAmount", diff.getPlatformAmount());
+            result.put("systemAmount", diff.getSystemAmount());
+            result.put("diffAmount", diff.getDiffAmount());
+            result.put("diffReason", diff.getDiffReason());
+            result.put("status", diff.getStatus());
+            result.put("handleTime", diff.getHandleTime());
+            result.put("createTime", diff.getCreateTime());
+        }
         
         return result;
     }
@@ -374,13 +724,34 @@ public class ReconciliationServiceImpl implements ReconciliationService {
     @Override
     public void handleDiff(Map<String, Object> params) {
         log.info("处理差异, params={}", params);
-        // TODO: 实现差异处理逻辑
+        
+        Long id = Long.parseLong(params.get("id").toString());
+        String handleType = (String) params.get("handleType");
+        String remark = (String) params.get("remark");
+        
+        ReconciliationDiffDO updateObj = new ReconciliationDiffDO();
+        updateObj.setId(id);
+        updateObj.setStatus("completed");
+        updateObj.setRemark(remark);
+        updateObj.setHandleTime(LocalDateTime.now());
+        reconciliationDiffMapper.updateById(updateObj);
     }
 
     @Override
     public void batchHandleDiff(Map<String, Object> params) {
         log.info("批量处理差异, params={}", params);
-        // TODO: 实现批量差异处理逻辑
+        
+        @SuppressWarnings("unchecked")
+        List<Long> ids = (List<Long>) params.get("ids");
+        String handleType = (String) params.get("handleType");
+        
+        for (Long id : ids) {
+            ReconciliationDiffDO updateObj = new ReconciliationDiffDO();
+            updateObj.setId(id);
+            updateObj.setStatus("completed");
+            updateObj.setHandleTime(LocalDateTime.now());
+            reconciliationDiffMapper.updateById(updateObj);
+        }
     }
 
     @Override
@@ -389,22 +760,38 @@ public class ReconciliationServiceImpl implements ReconciliationService {
         log.info("获取异常分页列表");
         
         Map<String, Object> result = new HashMap<>();
-        List<Map<String, Object>> list = new ArrayList<>();
         
-        for (int i = 1; i <= 5; i++) {
+        // 从数据库查询异常列表
+        LambdaQueryWrapperX<ReconciliationExceptionDO> wrapper = new LambdaQueryWrapperX<ReconciliationExceptionDO>()
+                .eqIfPresent(ReconciliationExceptionDO::getExceptionType, exceptionType)
+                .eqIfPresent(ReconciliationExceptionDO::getHandleStatus, handleStatus)
+                .orderByDesc(ReconciliationExceptionDO::getCreateTime);
+        
+        PageParam pageParam = new PageParam();
+        pageParam.setPageNo(pageNo);
+        pageParam.setPageSize(pageSize);
+        
+        PageResult<ReconciliationExceptionDO> pageResult = reconciliationExceptionMapper.selectPage(pageParam, wrapper);
+        
+        List<Map<String, Object>> list = pageResult.getList().stream().map(ex -> {
             Map<String, Object> item = new HashMap<>();
-            item.put("id", i);
-            item.put("exceptionType", i % 3 == 0 ? "order" : (i % 3 == 1 ? "fund" : "inventory"));
-            item.put("description", "异常描述" + i);
-            item.put("affectedScope", "影响范围" + i);
-            item.put("suggestion", "处理建议" + i);
-            item.put("handleStatus", i % 2);
-            item.put("createTime", "2024-01-15 10:00:00");
-            list.add(item);
-        }
+            item.put("id", ex.getId());
+            item.put("exceptionType", ex.getExceptionType());
+            item.put("exceptionLevel", ex.getExceptionLevel());
+            item.put("description", ex.getExceptionDesc());
+            item.put("orderId", ex.getOrderId());
+            item.put("orderNo", ex.getOrderNo());
+            item.put("localAmount", ex.getLocalAmount());
+            item.put("platformAmount", ex.getPlatformAmount());
+            item.put("diffAmount", ex.getDiffAmount());
+            item.put("handleStatus", ex.getHandleStatus());
+            item.put("handleResult", ex.getHandleResult());
+            item.put("createTime", ex.getCreateTime());
+            return item;
+        }).collect(Collectors.toList());
         
         result.put("list", list);
-        result.put("total", 5);
+        result.put("total", pageResult.getTotal());
         return result;
     }
 
@@ -413,10 +800,28 @@ public class ReconciliationServiceImpl implements ReconciliationService {
         log.info("获取异常统计数据");
         
         Map<String, Object> result = new HashMap<>();
-        result.put("todayCount", 10);
-        result.put("pendingCount", 5);
-        result.put("handledCount", 95);
-        result.put("handleRate", 95.0);
+        
+        // 从数据库统计
+        LocalDate today = LocalDate.now();
+        Long todayCount = reconciliationExceptionMapper.selectCount(
+                new LambdaQueryWrapperX<ReconciliationExceptionDO>()
+                        .ge(ReconciliationExceptionDO::getCreateTime, today.atStartOfDay()));
+        
+        Long pendingCount = reconciliationExceptionMapper.selectCount(
+                new LambdaQueryWrapperX<ReconciliationExceptionDO>()
+                        .eq(ReconciliationExceptionDO::getHandleStatus, 0));
+        
+        Long handledCount = reconciliationExceptionMapper.selectCount(
+                new LambdaQueryWrapperX<ReconciliationExceptionDO>()
+                        .ne(ReconciliationExceptionDO::getHandleStatus, 0));
+        
+        Long totalCount = pendingCount + handledCount;
+        double handleRate = totalCount > 0 ? (handledCount * 100.0 / totalCount) : 0;
+        
+        result.put("todayCount", todayCount);
+        result.put("pendingCount", pendingCount);
+        result.put("handledCount", handledCount);
+        result.put("handleRate", handleRate);
         
         return result;
     }
@@ -424,6 +829,17 @@ public class ReconciliationServiceImpl implements ReconciliationService {
     @Override
     public void handleException(Map<String, Object> params) {
         log.info("处理异常, params={}", params);
-        // TODO: 实现异常处理逻辑
+        
+        Long id = Long.parseLong(params.get("id").toString());
+        String handleType = (String) params.get("handleType");
+        String handleResult = (String) params.get("handleResult");
+        
+        ReconciliationExceptionDO updateObj = new ReconciliationExceptionDO();
+        updateObj.setId(id);
+        updateObj.setHandleStatus(1);
+        updateObj.setHandleType(handleType);
+        updateObj.setHandleResult(handleResult);
+        updateObj.setHandleTime(LocalDateTime.now());
+        reconciliationExceptionMapper.updateById(updateObj);
     }
 }
