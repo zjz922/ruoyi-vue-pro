@@ -77,4 +77,4 @@ finance:
 # 日志配置
 logging:
   level:
-    cn.iocoder.flash.module.finance: DEBUG
+    cn.flashsaas.module.finance: DEBUG

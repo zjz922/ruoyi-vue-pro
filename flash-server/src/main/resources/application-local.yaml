@@ -169,26 +169,26 @@ logging:
     name: ${user.home}/logs/${spring.application.name}.log # 日志文件名，全路径
   level:
     # 配置自己写的 MyBatis Mapper 打印日志
-    cn.iocoder.flash.module.bpm.dal.mysql: debug
-    cn.iocoder.flash.module.infra.dal.mysql: debug
-    cn.iocoder.flash.module.infra.dal.mysql.logger.ApiErrorLogMapper: INFO # 配置 ApiErrorLogMapper 的日志级别为 info，避免和 GlobalExceptionHandler 重复打印
-    cn.iocoder.flash.module.infra.dal.mysql.job.JobLogMapper: INFO # 配置 JobLogMapper 的日志级别为 info
-    cn.iocoder.flash.module.infra.dal.mysql.file.FileConfigMapper: INFO # 配置 FileConfigMapper 的日志级别为 info
-    cn.iocoder.flash.module.pay.dal.mysql: debug
-    cn.iocoder.flash.module.pay.dal.mysql.notify.PayNotifyTaskMapper: INFO # 配置 PayNotifyTaskMapper 的日志级别为 info
-    cn.iocoder.flash.module.system.dal.mysql: debug
-    cn.iocoder.flash.module.system.dal.mysql.sms.SmsChannelMapper: INFO # 配置 SmsChannelMapper 的日志级别为 info
-    cn.iocoder.flash.module.tool.dal.mysql: debug
-    cn.iocoder.flash.module.member.dal.mysql: debug
-    cn.iocoder.flash.module.trade.dal.mysql: debug
-    cn.iocoder.flash.module.promotion.dal.mysql: debug
-    cn.iocoder.flash.module.statistics.dal.mysql: debug
-    cn.iocoder.flash.module.crm.dal.mysql: debug
-    cn.iocoder.flash.module.erp.dal.mysql: debug
-    cn.iocoder.flash.module.iot.dal.mysql: debug
-    cn.iocoder.flash.module.iot.dal.tdengine: DEBUG
-    cn.iocoder.flash.module.iot.service.rule: debug
-    cn.iocoder.flash.module.ai.dal.mysql: debug
+    cn.flashsaas.module.bpm.dal.mysql: debug
+    cn.flashsaas.module.infra.dal.mysql: debug
+    cn.flashsaas.module.infra.dal.mysql.logger.ApiErrorLogMapper: INFO # 配置 ApiErrorLogMapper 的日志级别为 info，避免和 GlobalExceptionHandler 重复打印
+    cn.flashsaas.module.infra.dal.mysql.job.JobLogMapper: INFO # 配置 JobLogMapper 的日志级别为 info
+    cn.flashsaas.module.infra.dal.mysql.file.FileConfigMapper: INFO # 配置 FileConfigMapper 的日志级别为 info
+    cn.flashsaas.module.pay.dal.mysql: debug
+    cn.flashsaas.module.pay.dal.mysql.notify.PayNotifyTaskMapper: INFO # 配置 PayNotifyTaskMapper 的日志级别为 info
+    cn.flashsaas.module.system.dal.mysql: debug
+    cn.flashsaas.module.system.dal.mysql.sms.SmsChannelMapper: INFO # 配置 SmsChannelMapper 的日志级别为 info
+    cn.flashsaas.module.tool.dal.mysql: debug
+    cn.flashsaas.module.member.dal.mysql: debug
+    cn.flashsaas.module.trade.dal.mysql: debug
+    cn.flashsaas.module.promotion.dal.mysql: debug
+    cn.flashsaas.module.statistics.dal.mysql: debug
+    cn.flashsaas.module.crm.dal.mysql: debug
+    cn.flashsaas.module.erp.dal.mysql: debug
+    cn.flashsaas.module.iot.dal.mysql: debug
+    cn.flashsaas.module.iot.dal.tdengine: DEBUG
+    cn.flashsaas.module.iot.service.rule: debug
+    cn.flashsaas.module.ai.dal.mysql: debug
     org.springframework.context.support.PostProcessorRegistrationDelegate: ERROR # TODO 芋艿：先禁用，Spring Boot 3.X 存在部分错误的 WARN 提示
 
 debug: false

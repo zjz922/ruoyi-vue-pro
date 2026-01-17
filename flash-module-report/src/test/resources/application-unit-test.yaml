@@ -44,4 +44,4 @@ mybatis:
 # 芋道配置项，设置当前项目所有自定义的配置
 flash:
   info:
-    base-package: cn.iocoder.flash.module
+    base-package: cn.flashsaas.module

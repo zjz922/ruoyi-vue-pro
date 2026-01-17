@@ -260,7 +260,7 @@ flash:
 flash:
   info:
     version: 1.0.0
-    base-package: cn.iocoder.flash
+    base-package: cn.flashsaas
   web:
     admin-ui:
       url: http://dashboard.flash.iocoder.cn # Admin 管理后台 UI 的地址

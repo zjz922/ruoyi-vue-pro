@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="cn.iocoder.flash.module.erp.dal.mysql.statistics.ErpPurchaseStatisticsMapper">
+<mapper namespace="cn.flashsaas.module.erp.dal.mysql.statistics.ErpPurchaseStatisticsMapper">
 
     <select id="getPurchasePrice" resultType="java.math.BigDecimal">
         SELECT
@@ -10,8 +10,8 @@
                <if test="endTime != null">
                    AND in_time &lt; #{endTime}
                </if>
-               <if test="@cn.iocoder.flash.framework.tenant.core.context.TenantContextHolder@getTenantId() != null">
-                   AND tenant_id = ${@cn.iocoder.flash.framework.tenant.core.context.TenantContextHolder@getTenantId()}
+               <if test="@cn.flashsaas.framework.tenant.core.context.TenantContextHolder@getTenantId() != null">
+                   AND tenant_id = ${@cn.flashsaas.framework.tenant.core.context.TenantContextHolder@getTenantId()}
                </if>
                AND deleted = 0) -
             (SELECT IFNULL(SUM(total_price), 0)
@@ -20,8 +20,8 @@
                 <if test="endTime != null">
                     AND return_time &lt; #{endTime}
                 </if>
-                <if test="@cn.iocoder.flash.framework.tenant.core.context.TenantContextHolder@getTenantId() != null">
-                    AND tenant_id = ${@cn.iocoder.flash.framework.tenant.core.context.TenantContextHolder@getTenantId()}
+                <if test="@cn.flashsaas.framework.tenant.core.context.TenantContextHolder@getTenantId() != null">
+                    AND tenant_id = ${@cn.flashsaas.framework.tenant.core.context.TenantContextHolder@getTenantId()}
                 </if>
                 AND deleted = 0)
     </select>
