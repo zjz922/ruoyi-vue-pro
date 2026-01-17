@@ -47,6 +47,26 @@ public class ReconciliationDiffDO {
     private LocalDate checkDate;
 
     /**
+     * 差异日期（兼容字段）
+     */
+    private LocalDate diffDate;
+
+    /**
+     * 来源值
+     */
+    private BigDecimal sourceValue;
+
+    /**
+     * 目标值
+     */
+    private BigDecimal targetValue;
+
+    /**
+     * 差异值
+     */
+    private BigDecimal diffValue;
+
+    /**
      * 差异类型：order-订单差异, fund-资金差异, inventory-库存差异
      */
     private String diffType;

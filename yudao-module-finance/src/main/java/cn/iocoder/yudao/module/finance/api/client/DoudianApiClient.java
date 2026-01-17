@@ -35,24 +35,23 @@ public class DoudianApiClient {
     @Value("${doudian.api.url:https://openapi-fxg.jinritemai.com}")
     private String apiUrl;
 
-    @Value("${doudian.app.key:}")
+    @Value("${finance.doudian.app-key:}")
     private String appKey;
 
-    @Value("${doudian.app.secret:}")
+    @Value("${finance.doudian.app-secret:}")
     private String appSecret;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
-     * 获取订单汇总数据
+     * 获取订单汇总数据（重载方法，兼容新接口）
      * 
-     * @param shopId 店铺ID
      * @param accessToken 访问令牌
      * @param startDate 开始日期
      * @param endDate 结束日期
      * @return 订单汇总数据
      */
-    public DoudianOrderSummaryDTO getOrderSummary(Long shopId, String accessToken, LocalDate startDate, LocalDate endDate) {
+    public DoudianOrderSummaryDTO getOrderSummary(String accessToken, LocalDate startDate, LocalDate endDate) {
         DoudianOrderSummaryDTO summary = new DoudianOrderSummaryDTO();
         
         try {
@@ -69,79 +68,60 @@ public class DoudianApiClient {
                 JSONObject data = response.getJSONObject("data");
                 
                 // 统计订单数据
-                BigDecimal totalSales = BigDecimal.ZERO;
+                BigDecimal totalAmount = BigDecimal.ZERO;
                 BigDecimal totalRefund = BigDecimal.ZERO;
-                BigDecimal totalCommission = BigDecimal.ZERO;
-                BigDecimal totalServiceFee = BigDecimal.ZERO;
-                BigDecimal totalShipping = BigDecimal.ZERO;
-                BigDecimal totalInsurance = BigDecimal.ZERO;
-                BigDecimal totalAfterSale = BigDecimal.ZERO;
                 int orderCount = 0;
+                int refundCount = 0;
                 
                 if (data != null && data.containsKey("shop_order_list")) {
                     for (Object orderObj : data.getJSONArray("shop_order_list")) {
                         JSONObject order = (JSONObject) orderObj;
                         orderCount++;
                         
-                        // 订单金额
+                        // 订单金额（分）
                         BigDecimal orderAmount = order.getBigDecimal("order_amount");
                         if (orderAmount != null) {
-                            totalSales = totalSales.add(orderAmount.divide(new BigDecimal("100")));
+                            totalAmount = totalAmount.add(orderAmount);
                         }
                         
-                        // 退款金额
+                        // 退款金额（分）
                         BigDecimal refundAmount = order.getBigDecimal("refund_amount");
-                        if (refundAmount != null) {
-                            totalRefund = totalRefund.add(refundAmount.divide(new BigDecimal("100")));
-                        }
-                        
-                        // 达人佣金
-                        BigDecimal commission = order.getBigDecimal("author_cost_amount");
-                        if (commission != null) {
-                            totalCommission = totalCommission.add(commission.divide(new BigDecimal("100")));
-                        }
-                        
-                        // 平台服务费
-                        BigDecimal serviceFee = order.getBigDecimal("platform_cost_amount");
-                        if (serviceFee != null) {
-                            totalServiceFee = totalServiceFee.add(serviceFee.divide(new BigDecimal("100")));
-                        }
-                        
-                        // 快递费
-                        BigDecimal shipping = order.getBigDecimal("post_amount");
-                        if (shipping != null) {
-                            totalShipping = totalShipping.add(shipping.divide(new BigDecimal("100")));
-                        }
-                        
-                        // 运费险
-                        BigDecimal insurance = order.getBigDecimal("post_insurance_amount");
-                        if (insurance != null) {
-                            totalInsurance = totalInsurance.add(insurance.divide(new BigDecimal("100")));
+                        if (refundAmount != null && refundAmount.compareTo(BigDecimal.ZERO) > 0) {
+                            totalRefund = totalRefund.add(refundAmount);
+                            refundCount++;
                         }
                     }
                 }
                 
-                summary.setSalesRevenue(totalSales);
+                summary.setTotalAmount(totalAmount);
                 summary.setRefundAmount(totalRefund);
-                summary.setCommissionFee(totalCommission);
-                summary.setServiceFee(totalServiceFee);
-                summary.setShippingFee(totalShipping);
-                summary.setInsuranceFee(totalInsurance);
-                summary.setAfterSaleCost(totalAfterSale);
                 summary.setOrderCount(orderCount);
+                summary.setRefundCount(refundCount);
                 summary.setSyncTime(LocalDateTime.now());
             }
         } catch (Exception e) {
-            log.error("获取抖店订单汇总失败: shopId={}, error={}", shopId, e.getMessage(), e);
+            log.error("获取抖店订单汇总失败: error={}", e.getMessage(), e);
         }
         
         return summary;
     }
 
     /**
-     * 获取订单列表
+     * 获取订单汇总数据（原方法，保持兼容）
      * 
      * @param shopId 店铺ID
+     * @param accessToken 访问令牌
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 订单汇总数据
+     */
+    public DoudianOrderSummaryDTO getOrderSummary(Long shopId, String accessToken, LocalDate startDate, LocalDate endDate) {
+        return getOrderSummary(accessToken, startDate, endDate);
+    }
+
+    /**
+     * 获取订单列表（重载方法，兼容新接口）
+     * 
      * @param accessToken 访问令牌
      * @param startDate 开始日期
      * @param endDate 结束日期
@@ -149,7 +129,7 @@ public class DoudianApiClient {
      * @param size 每页条数
      * @return 订单列表
      */
-    public DoudianOrderListDTO getOrderList(Long shopId, String accessToken, LocalDate startDate, LocalDate endDate, int page, int size) {
+    public DoudianOrderListDTO getOrderList(String accessToken, LocalDate startDate, LocalDate endDate, int page, int size) {
         DoudianOrderListDTO result = new DoudianOrderListDTO();
         result.setOrders(new ArrayList<>());
         result.setTotal(0L);
@@ -185,10 +165,126 @@ public class DoudianApiClient {
                 }
             }
         } catch (Exception e) {
-            log.error("获取抖店订单列表失败: shopId={}, error={}", shopId, e.getMessage(), e);
+            log.error("获取抖店订单列表失败: error={}", e.getMessage(), e);
         }
         
         return result;
+    }
+
+    /**
+     * 获取订单列表（原方法，保持兼容）
+     * 
+     * @param shopId 店铺ID
+     * @param accessToken 访问令牌
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param page 页码
+     * @param size 每页条数
+     * @return 订单列表
+     */
+    public DoudianOrderListDTO getOrderList(Long shopId, String accessToken, LocalDate startDate, LocalDate endDate, int page, int size) {
+        return getOrderList(accessToken, startDate, endDate, page, size);
+    }
+
+    /**
+     * 获取资金流水列表
+     * 
+     * @param accessToken 访问令牌
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @param page 页码
+     * @param size 每页条数
+     * @return 资金流水列表
+     */
+    public DoudianCashflowListDTO getCashflowList(String accessToken, LocalDate startDate, LocalDate endDate, int page, int size) {
+        DoudianCashflowListDTO result = new DoudianCashflowListDTO();
+        result.setCashflows(new ArrayList<>());
+        result.setTotal(0);
+        result.setPage(page);
+        result.setPageSize(size);
+        
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("start_time", startDate.atStartOfDay().format(DATE_FORMATTER));
+            params.put("end_time", endDate.atTime(23, 59, 59).format(DATE_FORMATTER));
+            params.put("page", page);
+            params.put("size", size);
+            
+            // 调用抖店资金流水API
+            JSONObject response = callApi("/shop/getShopAccountFlowList", params, accessToken);
+            
+            if (response != null && response.getInteger("err_no") == 0) {
+                JSONObject data = response.getJSONObject("data");
+                if (data != null) {
+                    result.setTotal(data.getInteger("total"));
+                    
+                    if (data.containsKey("flow_list")) {
+                        for (Object flowObj : data.getJSONArray("flow_list")) {
+                            JSONObject flow = (JSONObject) flowObj;
+                            DoudianCashflowDTO cashflowDTO = new DoudianCashflowDTO();
+                            cashflowDTO.setFlowId(flow.getString("flow_id"));
+                            cashflowDTO.setTradeType(flow.getString("trade_type"));
+                            cashflowDTO.setAmount(flow.getBigDecimal("amount"));
+                            cashflowDTO.setBalance(flow.getBigDecimal("balance"));
+                            cashflowDTO.setTradeTime(flow.getString("trade_time"));
+                            cashflowDTO.setDescription(flow.getString("description"));
+                            cashflowDTO.setOrderId(flow.getString("order_id"));
+                            result.getCashflows().add(cashflowDTO);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("获取抖店资金流水列表失败: error={}", e.getMessage(), e);
+        }
+        
+        return result;
+    }
+
+    /**
+     * 刷新访问令牌
+     * 
+     * @param appKey 应用Key
+     * @param appSecret 应用Secret
+     * @param refreshToken 刷新令牌
+     * @return 新的令牌信息
+     */
+    public DoudianTokenDTO refreshToken(String appKey, String appSecret, String refreshToken) {
+        DoudianTokenDTO tokenDTO = new DoudianTokenDTO();
+        
+        try {
+            Map<String, Object> params = new HashMap<>();
+            params.put("grant_type", "refresh_token");
+            params.put("refresh_token", refreshToken);
+            
+            // 使用传入的appKey和appSecret
+            String originalAppKey = this.appKey;
+            String originalAppSecret = this.appSecret;
+            this.appKey = appKey;
+            this.appSecret = appSecret;
+            
+            JSONObject response = callApi("/token/refresh", params, null);
+            
+            // 恢复原始配置
+            this.appKey = originalAppKey;
+            this.appSecret = originalAppSecret;
+            
+            if (response != null && response.getInteger("err_no") == 0) {
+                JSONObject data = response.getJSONObject("data");
+                if (data != null) {
+                    tokenDTO.setAccessToken(data.getString("access_token"));
+                    tokenDTO.setRefreshToken(data.getString("refresh_token"));
+                    tokenDTO.setExpiresIn(data.getLong("expires_in"));
+                    tokenDTO.setScope(data.getString("scope"));
+                    tokenDTO.setShopId(data.getString("shop_id"));
+                    tokenDTO.setShopName(data.getString("shop_name"));
+                }
+            }
+        } catch (Exception e) {
+            log.error("刷新抖店令牌失败: error={}", e.getMessage(), e);
+        }
+        
+        return tokenDTO;
     }
 
     /**
@@ -265,7 +361,9 @@ public class DoudianApiClient {
             requestBody.put("param_json", JSON.toJSONString(params));
             requestBody.put("timestamp", String.valueOf(System.currentTimeMillis() / 1000));
             requestBody.put("v", "2");
-            requestBody.put("access_token", accessToken);
+            if (accessToken != null) {
+                requestBody.put("access_token", accessToken);
+            }
             
             // 计算签名
             String sign = calculateSign(requestBody);
@@ -274,8 +372,11 @@ public class DoudianApiClient {
             httpPost.setHeader("Content-Type", "application/json");
             httpPost.setEntity(new StringEntity(JSON.toJSONString(requestBody), StandardCharsets.UTF_8));
             
+            log.debug("[callApi] 请求URL: {}, 参数: {}", url, JSON.toJSONString(requestBody));
+            
             try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
                 String responseBody = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+                log.debug("[callApi] 响应: {}", responseBody);
                 return JSON.parseObject(responseBody);
             }
         } catch (Exception e) {

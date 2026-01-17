@@ -54,6 +54,21 @@ public class SyncLogDO extends BaseDO {
     private String syncStatus;
 
     /**
+     * 同步状态（兼容字段）
+     */
+    private String status;
+
+    /**
+     * 同步开始日期
+     */
+    private java.time.LocalDate startDate;
+
+    /**
+     * 同步结束日期
+     */
+    private java.time.LocalDate endDate;
+
+    /**
      * 同步开始时间
      */
     private LocalDateTime startTime;

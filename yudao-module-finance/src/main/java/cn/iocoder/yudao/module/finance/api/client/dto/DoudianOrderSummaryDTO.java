@@ -54,6 +54,16 @@ public class DoudianOrderSummaryDTO {
     private Integer orderCount = 0;
 
     /**
+     * 退款数量
+     */
+    private Integer refundCount = 0;
+
+    /**
+     * 订单总金额（分）
+     */
+    private BigDecimal totalAmount = BigDecimal.ZERO;
+
+    /**
      * 同步时间
      */
     private LocalDateTime syncTime;
