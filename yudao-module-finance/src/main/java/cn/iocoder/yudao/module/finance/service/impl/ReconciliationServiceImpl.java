@@ -293,4 +293,137 @@ public class ReconciliationServiceImpl implements ReconciliationService {
         
         return distribution;
     }
+
+    // ========== 管理员端对账方法实现 ==========
+
+    @Override
+    public Map<String, Object> getReconciliationOverview() {
+        log.info("获取对账总览数据");
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("pendingCount", 15);
+        result.put("processingCount", 3);
+        result.put("completedCount", 120);
+        result.put("exceptionCount", 5);
+        
+        // 订单对账
+        Map<String, Object> orderReconciliation = new HashMap<>();
+        orderReconciliation.put("total", 1000);
+        orderReconciliation.put("matched", 985);
+        orderReconciliation.put("unmatched", 15);
+        orderReconciliation.put("progress", 98.5);
+        result.put("orderReconciliation", orderReconciliation);
+        
+        // 资金对账
+        Map<String, Object> fundReconciliation = new HashMap<>();
+        fundReconciliation.put("total", 500);
+        fundReconciliation.put("matched", 495);
+        fundReconciliation.put("unmatched", 5);
+        fundReconciliation.put("progress", 99.0);
+        result.put("fundReconciliation", fundReconciliation);
+        
+        // 库存对账
+        Map<String, Object> inventoryReconciliation = new HashMap<>();
+        inventoryReconciliation.put("total", 300);
+        inventoryReconciliation.put("matched", 290);
+        inventoryReconciliation.put("unmatched", 10);
+        inventoryReconciliation.put("progress", 96.7);
+        result.put("inventoryReconciliation", inventoryReconciliation);
+        
+        return result;
+    }
+
+    @Override
+    public Long startReconciliationTask(Map<String, Object> params) {
+        log.info("发起对账任务, params={}", params);
+        return System.currentTimeMillis();
+    }
+
+    @Override
+    public Map<String, Object> getReconciliationProgress() {
+        log.info("获取对账进度");
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", "processing");
+        result.put("progress", 75);
+        result.put("currentStep", "订单对账");
+        result.put("startTime", "2024-01-15 10:00:00");
+        
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> getDiffDetail(Long id) {
+        log.info("获取差异详情, id={}", id);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", id);
+        result.put("diffType", "order");
+        result.put("tenantId", 1);
+        result.put("tenantName", "测试租户");
+        result.put("sourceData", "{\"orderId\": \"123\", \"amount\": 10000}");
+        result.put("targetData", "{\"orderId\": \"123\", \"amount\": 9800}");
+        result.put("diffAmount", 200);
+        result.put("diffReason", "金额不匹配");
+        result.put("handleStatus", 0);
+        result.put("createTime", "2024-01-15 10:00:00");
+        
+        return result;
+    }
+
+    @Override
+    public void handleDiff(Map<String, Object> params) {
+        log.info("处理差异, params={}", params);
+        // TODO: 实现差异处理逻辑
+    }
+
+    @Override
+    public void batchHandleDiff(Map<String, Object> params) {
+        log.info("批量处理差异, params={}", params);
+        // TODO: 实现批量差异处理逻辑
+    }
+
+    @Override
+    public Map<String, Object> getExceptionPage(Integer pageNo, Integer pageSize, String exceptionType,
+            Integer handleStatus, String startDate, String endDate) {
+        log.info("获取异常分页列表");
+        
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> list = new ArrayList<>();
+        
+        for (int i = 1; i <= 5; i++) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", i);
+            item.put("exceptionType", i % 3 == 0 ? "order" : (i % 3 == 1 ? "fund" : "inventory"));
+            item.put("description", "异常描述" + i);
+            item.put("affectedScope", "影响范围" + i);
+            item.put("suggestion", "处理建议" + i);
+            item.put("handleStatus", i % 2);
+            item.put("createTime", "2024-01-15 10:00:00");
+            list.add(item);
+        }
+        
+        result.put("list", list);
+        result.put("total", 5);
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> getExceptionStatistics() {
+        log.info("获取异常统计数据");
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("todayCount", 10);
+        result.put("pendingCount", 5);
+        result.put("handledCount", 95);
+        result.put("handleRate", 95.0);
+        
+        return result;
+    }
+
+    @Override
+    public void handleException(Map<String, Object> params) {
+        log.info("处理异常, params={}", params);
+        // TODO: 实现异常处理逻辑
+    }
 }

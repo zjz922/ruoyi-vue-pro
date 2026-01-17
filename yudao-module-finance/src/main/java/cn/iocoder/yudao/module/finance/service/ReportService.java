@@ -89,3 +89,50 @@ public interface ReportService {
     String exportReport(Long shopId, String reportType, LocalDate startDate, LocalDate endDate);
 
 }
+
+    // ==================== 管理员端报表方法 ====================
+
+    /**
+     * 获取报表总览数据
+     */
+    Map<String, Object> getReportOverview(LocalDate startDate, LocalDate endDate, Long tenantId, String platformType);
+
+    /**
+     * 获取趋势数据
+     */
+    Map<String, Object> getReportTrend(LocalDate startDate, LocalDate endDate, Long tenantId, String platformType);
+
+    /**
+     * 获取租户排行榜
+     */
+    java.util.List<Map<String, Object>> getTenantRanking(LocalDate startDate, LocalDate endDate, String type, Integer limit);
+
+    /**
+     * 获取平台分布数据
+     */
+    java.util.List<Map<String, Object>> getPlatformDistribution(LocalDate startDate, LocalDate endDate, Long tenantId);
+
+    /**
+     * 获取租户详细报表
+     */
+    Map<String, Object> getTenantReport(Long tenantId, LocalDate startDate, LocalDate endDate);
+
+    /**
+     * 获取店铺对比数据
+     */
+    Map<String, Object> getShopComparison(Long tenantId, LocalDate startDate, LocalDate endDate);
+
+    /**
+     * 创建导出任务
+     */
+    Long createExportTask(Map<String, Object> params);
+
+    /**
+     * 获取导出历史
+     */
+    Map<String, Object> getExportHistory(Integer pageNo, Integer pageSize);
+
+    /**
+     * 下载导出文件
+     */
+    void downloadExportFile(Long id, javax.servlet.http.HttpServletResponse response) throws Exception;

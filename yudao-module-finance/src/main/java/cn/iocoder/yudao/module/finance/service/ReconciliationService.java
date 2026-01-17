@@ -179,3 +179,51 @@ public interface ReconciliationService {
      */
     Map<String, Object> exportReconciliation(ReconciliationExportReqVO reqVO);
 }
+
+    // ========== 管理员端对账方法 ==========
+
+    /**
+     * 获取对账总览数据
+     */
+    Map<String, Object> getReconciliationOverview();
+
+    /**
+     * 发起对账任务
+     */
+    Long startReconciliationTask(Map<String, Object> params);
+
+    /**
+     * 获取对账进度
+     */
+    Map<String, Object> getReconciliationProgress();
+
+    /**
+     * 获取差异详情
+     */
+    Map<String, Object> getDiffDetail(Long id);
+
+    /**
+     * 处理差异
+     */
+    void handleDiff(Map<String, Object> params);
+
+    /**
+     * 批量处理差异
+     */
+    void batchHandleDiff(Map<String, Object> params);
+
+    /**
+     * 获取异常分页列表
+     */
+    Map<String, Object> getExceptionPage(Integer pageNo, Integer pageSize, String exceptionType, 
+            Integer handleStatus, String startDate, String endDate);
+
+    /**
+     * 获取异常统计数据
+     */
+    Map<String, Object> getExceptionStatistics();
+
+    /**
+     * 处理异常
+     */
+    void handleException(Map<String, Object> params);

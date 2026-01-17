@@ -384,3 +384,61 @@ export const deleteReportTemplate = (templateId: number) => {
 export const getReportDictionary = () => {
   return request.get('/finance/report/dictionary')
 }
+
+// ============ 管理员端报表API ============
+
+/**
+ * 获取报表总览数据（管理员端）
+ */
+export const getReportOverview = (params: any) => {
+  return request.get({ url: '/finance/report/overview', params })
+}
+
+/**
+ * 获取租户排行榜
+ */
+export const getTenantRanking = (params: any) => {
+  return request.get({ url: '/finance/report/tenant-ranking', params })
+}
+
+/**
+ * 获取平台分布数据
+ */
+export const getPlatformDistribution = (params: any) => {
+  return request.get({ url: '/finance/report/platform-distribution', params })
+}
+
+/**
+ * 获取租户详细报表
+ */
+export const getTenantReport = (tenantId: number, params: any) => {
+  return request.get({ url: `/finance/report/tenant/${tenantId}`, params })
+}
+
+/**
+ * 获取店铺对比数据
+ */
+export const getShopComparison = (tenantId: number, params: any) => {
+  return request.get({ url: `/finance/report/tenant/${tenantId}/shop-comparison`, params })
+}
+
+/**
+ * 创建导出任务
+ */
+export const createExportTask = (data: any) => {
+  return request.post({ url: '/finance/report/export/create', data })
+}
+
+/**
+ * 获取导出历史
+ */
+export const getExportHistory = (params: any) => {
+  return request.get({ url: '/finance/report/export/history', params })
+}
+
+/**
+ * 下载导出文件
+ */
+export const downloadExportFile = (id: number) => {
+  return request.download({ url: `/finance/report/export/download/${id}` })
+}

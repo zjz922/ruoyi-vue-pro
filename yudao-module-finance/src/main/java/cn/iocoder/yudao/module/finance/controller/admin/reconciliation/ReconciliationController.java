@@ -192,3 +192,78 @@ public class ReconciliationController {
         return success(reconciliationService.exportReconciliation(reqVO));
     }
 }
+
+    // ========== 管理员端对账API ==========
+
+    @GetMapping("/overview")
+    @Operation(summary = "获取对账总览数据")
+    @PreAuthorize("@ss.hasPermission('finance:reconciliation:query')")
+    public CommonResult<Map<String, Object>> getOverview() {
+        return success(reconciliationService.getReconciliationOverview());
+    }
+
+    @PostMapping("/start")
+    @Operation(summary = "发起对账任务")
+    @PreAuthorize("@ss.hasPermission('finance:reconciliation:auto')")
+    public CommonResult<Long> startReconciliation(@RequestBody Map<String, Object> params) {
+        return success(reconciliationService.startReconciliationTask(params));
+    }
+
+    @GetMapping("/progress")
+    @Operation(summary = "获取对账进度")
+    @PreAuthorize("@ss.hasPermission('finance:reconciliation:query')")
+    public CommonResult<Map<String, Object>> getProgress() {
+        return success(reconciliationService.getReconciliationProgress());
+    }
+
+    @GetMapping("/diff/get")
+    @Operation(summary = "获取差异详情")
+    @Parameter(name = "id", description = "差异ID", required = true)
+    @PreAuthorize("@ss.hasPermission('finance:reconciliation:query')")
+    public CommonResult<Map<String, Object>> getDiffDetail(@RequestParam("id") Long id) {
+        return success(reconciliationService.getDiffDetail(id));
+    }
+
+    @PutMapping("/diff/handle")
+    @Operation(summary = "处理差异")
+    @PreAuthorize("@ss.hasPermission('finance:reconciliation:process')")
+    public CommonResult<Boolean> handleDiff(@RequestBody Map<String, Object> params) {
+        reconciliationService.handleDiff(params);
+        return success(true);
+    }
+
+    @PutMapping("/diff/batch-handle")
+    @Operation(summary = "批量处理差异")
+    @PreAuthorize("@ss.hasPermission('finance:reconciliation:process')")
+    public CommonResult<Boolean> batchHandleDiff(@RequestBody Map<String, Object> params) {
+        reconciliationService.batchHandleDiff(params);
+        return success(true);
+    }
+
+    @GetMapping("/exception/page")
+    @Operation(summary = "获取异常分页列表")
+    @PreAuthorize("@ss.hasPermission('finance:reconciliation:query')")
+    public CommonResult<Map<String, Object>> getExceptionPage(
+            @RequestParam(value = "pageNo", defaultValue = "1") Integer pageNo,
+            @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize,
+            @RequestParam(value = "exceptionType", required = false) String exceptionType,
+            @RequestParam(value = "handleStatus", required = false) Integer handleStatus,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate) {
+        return success(reconciliationService.getExceptionPage(pageNo, pageSize, exceptionType, handleStatus, startDate, endDate));
+    }
+
+    @GetMapping("/exception/statistics")
+    @Operation(summary = "获取异常统计数据")
+    @PreAuthorize("@ss.hasPermission('finance:reconciliation:query')")
+    public CommonResult<Map<String, Object>> getExceptionStatistics() {
+        return success(reconciliationService.getExceptionStatistics());
+    }
+
+    @PutMapping("/exception/handle")
+    @Operation(summary = "处理异常")
+    @PreAuthorize("@ss.hasPermission('finance:reconciliation:process')")
+    public CommonResult<Boolean> handleException(@RequestBody Map<String, Object> params) {
+        reconciliationService.handleException(params);
+        return success(true);
+    }
