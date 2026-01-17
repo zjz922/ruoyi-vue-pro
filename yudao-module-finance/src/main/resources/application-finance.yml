@@ -22,6 +22,8 @@ finance:
     timeout: 30000
     # 重试次数
     retry-count: 3
+    # OAuth回调URL（生产环境需要修改为实际域名）
+    callback-url: http://localhost:8080/admin-api/finance/doudian/oauth/callback
 
   # 千川配置
   qianchuan:

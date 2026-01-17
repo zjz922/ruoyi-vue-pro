@@ -51,4 +51,31 @@ public interface DoudianAuthTokenMapper extends BaseMapperX<DoudianAuthTokenDO> 
                 .eq(DoudianAuthTokenDO::getAuthStatus, authStatus));
     }
 
+    /**
+     * 根据租户ID和店铺ID查询授权Token
+     */
+    default DoudianAuthTokenDO selectByTenantIdAndShopId(Long tenantId, String shopId) {
+        return selectOne(new LambdaQueryWrapperX<DoudianAuthTokenDO>()
+                .eq(DoudianAuthTokenDO::getTenantId, tenantId)
+                .eq(DoudianAuthTokenDO::getShopId, shopId));
+    }
+
+    /**
+     * 根据租户ID查询授权Token列表
+     */
+    default List<DoudianAuthTokenDO> selectListByTenantId(Long tenantId) {
+        return selectList(new LambdaQueryWrapperX<DoudianAuthTokenDO>()
+                .eq(DoudianAuthTokenDO::getTenantId, tenantId)
+                .orderByDesc(DoudianAuthTokenDO::getCreateTime));
+    }
+
+    /**
+     * 根据租户ID和店铺ID删除授权Token
+     */
+    default int deleteByTenantIdAndShopId(Long tenantId, String shopId) {
+        return delete(new LambdaQueryWrapperX<DoudianAuthTokenDO>()
+                .eq(DoudianAuthTokenDO::getTenantId, tenantId)
+                .eq(DoudianAuthTokenDO::getShopId, shopId));
+    }
+
 }

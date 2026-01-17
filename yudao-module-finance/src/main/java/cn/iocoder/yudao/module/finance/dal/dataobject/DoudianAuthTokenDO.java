@@ -40,7 +40,7 @@ public class DoudianAuthTokenDO extends BaseDO {
     private Long userId;
 
     /**
-     * 店铺ID
+     * 店铺ID（注意：数据库中是varchar类型）
      */
     private String shopId;
 
@@ -48,6 +48,16 @@ public class DoudianAuthTokenDO extends BaseDO {
      * 店铺名称
      */
     private String shopName;
+
+    /**
+     * App Key
+     */
+    private String appKey;
+
+    /**
+     * App Secret
+     */
+    private String appSecret;
 
     /**
      * Access Token
@@ -60,14 +70,14 @@ public class DoudianAuthTokenDO extends BaseDO {
     private String refreshToken;
 
     /**
-     * Access Token过期时间
+     * Token有效期（秒）
      */
-    private LocalDateTime accessTokenExpiresAt;
+    private Integer expiresIn;
 
     /**
-     * Refresh Token过期时间
+     * Token类型
      */
-    private LocalDateTime refreshTokenExpiresAt;
+    private String tokenType;
 
     /**
      * 授权范围
@@ -81,8 +91,18 @@ public class DoudianAuthTokenDO extends BaseDO {
     private Integer authStatus;
 
     /**
-     * 最后同步时间
+     * 授权时间
      */
-    private LocalDateTime lastSyncAt;
+    private LocalDateTime authTime;
+
+    /**
+     * 过期时间
+     */
+    private LocalDateTime expireTime;
+
+    /**
+     * 最后刷新时间
+     */
+    private LocalDateTime lastRefreshTime;
 
 }
