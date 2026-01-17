@@ -30,7 +30,7 @@ import static cn.flashsaas.module.erp.enums.ErrorCodeConstants.PRODUCT_NOT_EXIST
 /**
  * ERP 产品 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

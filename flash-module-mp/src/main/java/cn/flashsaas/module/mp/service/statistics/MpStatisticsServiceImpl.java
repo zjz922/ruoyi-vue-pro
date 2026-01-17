@@ -21,7 +21,7 @@ import static cn.flashsaas.module.mp.enums.ErrorCodeConstants.*;
 /**
  * 公众号统计 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 public class MpStatisticsServiceImpl implements MpStatisticsService {

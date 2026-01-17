@@ -24,7 +24,7 @@ import static cn.flashsaas.framework.common.exception.util.ServiceExceptionUtil.
 /**
  * IoT 网关 HTTP 协议的处理器抽象基类：提供通用的前置处理（认证）、全局的异常捕获等
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @RequiredArgsConstructor
 @Slf4j

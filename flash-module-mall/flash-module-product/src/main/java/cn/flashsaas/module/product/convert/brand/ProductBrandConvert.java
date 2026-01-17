@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * 品牌 Convert
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Mapper
 public interface ProductBrandConvert {

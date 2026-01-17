@@ -35,7 +35,7 @@ import static cn.flashsaas.module.trade.enums.ErrorCodeConstants.PRICE_CALCULATE
 /**
  * 价格计算 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

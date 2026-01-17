@@ -17,7 +17,7 @@ import java.util.List;
 /**
  * 用户收件地址 Convert
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Mapper
 public interface AddressConvert {

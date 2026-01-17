@@ -49,7 +49,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.conv
 /**
  * 流程实例 Convert
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Mapper
 public interface BpmProcessInstanceConvert {

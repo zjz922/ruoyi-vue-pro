@@ -5,7 +5,7 @@ import cn.flashsaas.module.iot.core.mq.message.IotDeviceMessage;
 /**
  * {@link cn.flashsaas.module.iot.core.mq.message.IotDeviceMessage} 的编解码器
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public interface IotDeviceMessageCodec {
 

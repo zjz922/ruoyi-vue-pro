@@ -11,7 +11,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.conv
 /**
  * 会员用户的 API 接口
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public interface MemberUserApi {
 

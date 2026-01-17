@@ -8,7 +8,7 @@ import cn.flashsaas.module.system.api.logger.dto.OperateLogRespDTO;
 /**
  * 操作日志 API 接口
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public interface OperateLogApi extends OperateLogCommonApi {
 

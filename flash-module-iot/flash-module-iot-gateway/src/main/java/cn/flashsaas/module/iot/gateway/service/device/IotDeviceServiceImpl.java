@@ -19,7 +19,7 @@ import static cn.flashsaas.framework.common.util.cache.CacheUtils.buildAsyncRelo
 /**
  * IoT 设备信息 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Slf4j

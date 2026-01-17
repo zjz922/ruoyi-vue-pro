@@ -18,7 +18,7 @@ import static cn.flashsaas.module.erp.enums.ErrorCodeConstants.STOCK_COUNT_NEGAT
 /**
  * ERP 产品库存 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

@@ -25,7 +25,7 @@ import static cn.flashsaas.module.bpm.enums.ErrorCodeConstants.OA_LEAVE_NOT_EXIS
  * OA 请假申请 Service 实现类
  *
  * @author jason
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

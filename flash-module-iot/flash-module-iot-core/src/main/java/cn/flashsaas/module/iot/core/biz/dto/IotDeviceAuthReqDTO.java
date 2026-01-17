@@ -7,7 +7,7 @@ import javax.validation.constraints.NotEmpty;
 /**
  * IoT 设备认证 Request DTO
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Data
 public class IotDeviceAuthReqDTO {

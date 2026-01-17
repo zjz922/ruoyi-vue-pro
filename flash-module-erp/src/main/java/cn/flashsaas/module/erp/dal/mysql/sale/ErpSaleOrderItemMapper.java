@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * ERP 销售订单明项目 Mapper
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Mapper
 public interface ErpSaleOrderItemMapper extends BaseMapperX<ErpSaleOrderItemDO> {

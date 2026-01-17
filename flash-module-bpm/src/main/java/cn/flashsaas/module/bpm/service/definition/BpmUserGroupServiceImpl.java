@@ -24,7 +24,7 @@ import static cn.flashsaas.module.bpm.enums.ErrorCodeConstants.USER_GROUP_NOT_EX
 /**
  * 用户组 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

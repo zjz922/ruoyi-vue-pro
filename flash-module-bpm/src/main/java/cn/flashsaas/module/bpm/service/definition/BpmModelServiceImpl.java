@@ -56,7 +56,7 @@ import static cn.flashsaas.module.bpm.framework.flowable.core.util.BpmnModelUtil
  * 流程模型实现：主要进行 Flowable {@link Model} 的维护
  *
  * @author yunlongn
- * @author 芋道源码
+ * @author FlashSaaS
  * @author jason
  */
 @Service

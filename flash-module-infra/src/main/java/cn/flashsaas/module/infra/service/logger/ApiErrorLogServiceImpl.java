@@ -25,7 +25,7 @@ import static cn.flashsaas.module.infra.enums.ErrorCodeConstants.API_ERROR_LOG_P
 /**
  * API 错误日志 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

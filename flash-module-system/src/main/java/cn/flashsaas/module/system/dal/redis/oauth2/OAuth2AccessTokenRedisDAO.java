@@ -19,7 +19,7 @@ import static cn.flashsaas.module.system.dal.redis.RedisKeyConstants.OAUTH2_ACCE
 /**
  * {@link OAuth2AccessTokenDO} 的 RedisDAO
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Repository
 public class OAuth2AccessTokenRedisDAO {

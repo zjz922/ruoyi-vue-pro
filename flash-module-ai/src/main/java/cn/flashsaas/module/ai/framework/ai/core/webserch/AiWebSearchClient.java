@@ -3,7 +3,7 @@ package cn.flashsaas.module.ai.framework.ai.core.webserch;
 /**
  * 网络搜索客户端接口
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public interface AiWebSearchClient {
 

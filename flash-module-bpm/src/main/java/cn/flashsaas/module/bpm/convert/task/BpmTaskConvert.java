@@ -34,7 +34,7 @@ import static cn.flashsaas.framework.common.util.collection.MapUtils.findAndThen
 /**
  * Bpm 任务 Convert
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Mapper
 public interface BpmTaskConvert {

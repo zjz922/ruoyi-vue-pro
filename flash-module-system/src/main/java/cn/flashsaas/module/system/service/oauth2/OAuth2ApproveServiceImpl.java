@@ -20,7 +20,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.conv
 /**
  * OAuth2 批准 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

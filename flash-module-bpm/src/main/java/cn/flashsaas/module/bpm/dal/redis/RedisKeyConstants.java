@@ -3,7 +3,7 @@ package cn.flashsaas.module.bpm.dal.redis;
 /**
  * BPM Redis Key 枚举类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public interface RedisKeyConstants {
 

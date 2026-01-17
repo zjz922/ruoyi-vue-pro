@@ -33,7 +33,7 @@ import static cn.flashsaas.module.system.enums.ErrorCodeConstants.*;
 /**
  * 菜单 Service 实现
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Slf4j

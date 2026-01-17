@@ -12,7 +12,7 @@ import static cn.flashsaas.module.pay.dal.redis.RedisKeyConstants.PAY_NOTIFY_LOC
 /**
  * 支付通知的锁 Redis DAO
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Repository
 public class PayNotifyLockRedisDAO {

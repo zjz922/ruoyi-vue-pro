@@ -20,7 +20,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.conv
 /**
  * 优惠劵 Mapper
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Mapper
 public interface CouponMapper extends BaseMapperX<CouponDO> {

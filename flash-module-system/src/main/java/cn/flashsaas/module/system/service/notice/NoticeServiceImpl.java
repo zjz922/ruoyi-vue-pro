@@ -18,7 +18,7 @@ import static cn.flashsaas.module.system.enums.ErrorCodeConstants.NOTICE_NOT_FOU
 /**
  * 通知公告 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 public class NoticeServiceImpl implements NoticeService {

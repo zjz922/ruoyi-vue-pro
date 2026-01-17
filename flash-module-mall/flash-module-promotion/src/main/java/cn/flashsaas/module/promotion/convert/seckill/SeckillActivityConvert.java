@@ -33,7 +33,7 @@ import static cn.flashsaas.framework.common.util.collection.MapUtils.findAndThen
 /**
  * 秒杀活动 Convert
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Mapper
 public interface SeckillActivityConvert {

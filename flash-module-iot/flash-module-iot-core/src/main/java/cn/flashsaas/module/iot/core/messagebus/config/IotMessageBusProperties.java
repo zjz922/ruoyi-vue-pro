@@ -9,7 +9,7 @@ import javax.validation.constraints.NotNull;
 /**
  * IoT 消息总线配置属性
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @ConfigurationProperties("flash.iot.message-bus")
 @Data

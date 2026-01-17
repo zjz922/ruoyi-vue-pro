@@ -11,7 +11,7 @@
 
     <name>${project.artifactId}</name>
     <description>基础 bom 文件，管理整个项目的依赖版本</description>
-    <url>https://github.com/YunaiV/flash-saas</url>
+    <url>https://github.com/zjz922/flash-saas</url>
 
     <properties>
         <revision>2025.12-jdk8-SNAPSHOT</revision>

@@ -24,7 +24,7 @@ import static cn.flashsaas.module.iot.enums.ErrorCodeConstants.PRODUCT_CATEGORY_
 /**
  * IoT 产品分类 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

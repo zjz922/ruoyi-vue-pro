@@ -18,7 +18,7 @@ import static cn.flashsaas.module.system.enums.ErrorCodeConstants.OAUTH2_CODE_NO
 /**
  * OAuth2.0 授权码 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

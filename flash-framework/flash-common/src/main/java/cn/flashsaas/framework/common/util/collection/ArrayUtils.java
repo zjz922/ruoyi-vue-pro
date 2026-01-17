@@ -13,7 +13,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.conv
 /**
  * Array 工具类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public class ArrayUtils {
 

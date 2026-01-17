@@ -21,7 +21,7 @@ import static cn.flashsaas.module.pay.framework.pay.core.client.impl.weixin.Abst
 /**
  * {@link WxNativePayClient} 的集成测试，用于快速调试微信扫码支付
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Disabled
 public class WxNativePayClientIntegrationTest {

@@ -41,7 +41,7 @@ import static cn.flashsaas.module.member.enums.ErrorCodeConstants.*;
 /**
  * 会员的认证 Service 接口
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Slf4j

@@ -30,8 +30,8 @@
     </modules>
 
     <name>${project.artifactId}</name>
-    <description>芋道项目基础脚手架</description>
-    <url>https://github.com/YunaiV/flash-saas</url>
+    <description>闪电帐PRO SaaS财务管理系统</description>
+    <url>https://github.com/zjz922/flash-saas</url>
 
     <properties>
         <revision>2025.12-jdk8-SNAPSHOT</revision>

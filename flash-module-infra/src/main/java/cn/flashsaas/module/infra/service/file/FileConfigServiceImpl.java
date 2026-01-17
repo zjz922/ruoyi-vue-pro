@@ -37,7 +37,7 @@ import static cn.flashsaas.module.infra.enums.ErrorCodeConstants.FILE_CONFIG_NOT
 /**
  * 文件配置 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

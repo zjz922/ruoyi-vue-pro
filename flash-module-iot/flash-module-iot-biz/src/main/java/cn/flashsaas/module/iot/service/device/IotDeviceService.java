@@ -18,7 +18,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.conv
 /**
  * IoT 设备 Service 接口
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public interface IotDeviceService {
 

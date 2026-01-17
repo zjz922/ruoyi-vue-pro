@@ -14,7 +14,7 @@ import static cn.flashsaas.framework.security.core.util.SecurityFrameworkUtils.s
 /**
  * 默认的 {@link SecurityFrameworkService} 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @AllArgsConstructor
 public class SecurityFrameworkServiceImpl implements SecurityFrameworkService {

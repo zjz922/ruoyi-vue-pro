@@ -22,7 +22,7 @@ import static cn.flashsaas.module.infra.dal.dataobject.logger.ApiAccessLogDO.RES
 /**
  * API 访问日志 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Slf4j
 @Service

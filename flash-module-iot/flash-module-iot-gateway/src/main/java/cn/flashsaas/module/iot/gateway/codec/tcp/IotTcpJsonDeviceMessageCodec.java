@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
  *     "timestamp": 时间戳
  * }
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Component
 public class IotTcpJsonDeviceMessageCodec implements IotDeviceMessageCodec {

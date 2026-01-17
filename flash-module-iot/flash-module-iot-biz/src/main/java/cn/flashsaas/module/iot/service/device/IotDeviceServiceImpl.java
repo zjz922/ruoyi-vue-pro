@@ -44,7 +44,7 @@ import static cn.flashsaas.module.iot.enums.ErrorCodeConstants.*;
 /**
  * IoT 设备 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

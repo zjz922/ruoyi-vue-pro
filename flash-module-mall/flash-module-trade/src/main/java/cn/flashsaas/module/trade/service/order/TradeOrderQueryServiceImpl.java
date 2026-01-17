@@ -38,7 +38,7 @@ import static cn.flashsaas.module.trade.enums.ErrorCodeConstants.ORDER_NOT_FOUND
 /**
  * 交易订单【读】 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 public class TradeOrderQueryServiceImpl implements TradeOrderQueryService {

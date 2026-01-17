@@ -40,7 +40,7 @@ import static cn.flashsaas.module.iot.enums.ErrorCodeConstants.RULE_SCENE_NOT_EX
 /**
  * IoT 规则场景 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

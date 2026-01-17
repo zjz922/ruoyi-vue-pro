@@ -3,7 +3,7 @@ package cn.flashsaas.module.pay.framework.pay.core.client;
 /**
  * 支付客户端的工厂接口
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public interface PayClientFactory {
 

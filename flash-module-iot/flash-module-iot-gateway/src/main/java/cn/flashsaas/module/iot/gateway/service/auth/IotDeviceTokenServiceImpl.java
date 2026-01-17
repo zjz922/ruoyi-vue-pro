@@ -23,7 +23,7 @@ import static cn.flashsaas.module.iot.gateway.enums.ErrorCodeConstants.DEVICE_TO
  *
  * 注意：目前仅 HTTP 协议使用
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Slf4j

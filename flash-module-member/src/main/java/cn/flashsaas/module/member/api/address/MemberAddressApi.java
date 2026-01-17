@@ -5,7 +5,7 @@ import cn.flashsaas.module.member.api.address.dto.MemberAddressRespDTO;
 /**
  * 用户收件地址 API 接口
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public interface MemberAddressApi {
 

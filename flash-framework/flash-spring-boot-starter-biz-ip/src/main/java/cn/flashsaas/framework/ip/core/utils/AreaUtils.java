@@ -22,7 +22,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.find
 /**
  * 区域工具类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Slf4j
 public class AreaUtils {

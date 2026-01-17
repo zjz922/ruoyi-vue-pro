@@ -5,7 +5,7 @@ import cn.flashsaas.module.iot.dal.dataobject.device.IotDevicePropertyDO;
 /**
  * IoT Redis Key 枚举类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public interface RedisKeyConstants {
 

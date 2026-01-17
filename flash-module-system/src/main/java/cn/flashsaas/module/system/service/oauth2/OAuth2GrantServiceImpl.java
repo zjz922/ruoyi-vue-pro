@@ -19,7 +19,7 @@ import static cn.flashsaas.framework.common.exception.util.ServiceExceptionUtil.
 /**
  * OAuth2 授予 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 public class OAuth2GrantServiceImpl implements OAuth2GrantService {

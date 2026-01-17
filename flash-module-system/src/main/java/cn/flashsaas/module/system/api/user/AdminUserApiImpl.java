@@ -22,7 +22,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.conv
 /**
  * Admin 用户 API 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 public class AdminUserApiImpl implements AdminUserApi {

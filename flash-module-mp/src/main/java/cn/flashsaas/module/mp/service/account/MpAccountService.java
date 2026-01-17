@@ -15,7 +15,7 @@ import static cn.flashsaas.module.mp.enums.ErrorCodeConstants.ACCOUNT_NOT_EXISTS
 /**
  * 公众号账号 Service 接口
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public interface MpAccountService {
 

@@ -27,7 +27,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.conv
 /**
  * 订单分销的 {@link TradeOrderHandler} 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Component
 public class TradeBrokerageOrderHandler implements TradeOrderHandler {

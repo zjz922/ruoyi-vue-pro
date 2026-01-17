@@ -55,7 +55,7 @@ import static cn.flashsaas.module.pay.framework.job.config.PayJobConfiguration.N
 /**
  * 支付通知 Core Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Valid

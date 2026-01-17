@@ -17,7 +17,7 @@ import javax.annotation.PreDestroy;
 /**
  * IoT 网关 MQTT 协议：接收设备上行消息
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Slf4j
 public class IotMqttUpstreamProtocol {

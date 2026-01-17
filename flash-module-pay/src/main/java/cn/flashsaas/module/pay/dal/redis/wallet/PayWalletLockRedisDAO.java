@@ -13,7 +13,7 @@ import static cn.flashsaas.module.pay.dal.redis.RedisKeyConstants.PAY_WALLET_LOC
 /**
  * 支付钱包的锁 Redis DAO
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Repository
 public class PayWalletLockRedisDAO {

@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * 限流注解
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

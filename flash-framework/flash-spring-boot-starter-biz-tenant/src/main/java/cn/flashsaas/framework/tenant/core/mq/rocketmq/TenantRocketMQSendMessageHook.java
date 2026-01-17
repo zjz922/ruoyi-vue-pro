@@ -11,7 +11,7 @@ import static cn.flashsaas.framework.web.core.util.WebFrameworkUtils.HEADER_TENA
  *
  * Producer 发送消息时，将 {@link TenantContextHolder} 租户编号，添加到消息的 Header 中
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public class TenantRocketMQSendMessageHook implements SendMessageHook {
 

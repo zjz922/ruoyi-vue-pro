@@ -14,7 +14,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.conv
 /**
  * 设备的最后上报时间的 Redis DAO
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Repository
 public class DeviceReportTimeRedisDAO {

@@ -26,7 +26,7 @@ import static cn.flashsaas.module.trade.service.price.calculator.TradePriceCalcu
 /**
  * 满减送活动的 {@link TradePriceCalculator} 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Component
 @Order(TradePriceCalculator.ORDER_REWARD_ACTIVITY)

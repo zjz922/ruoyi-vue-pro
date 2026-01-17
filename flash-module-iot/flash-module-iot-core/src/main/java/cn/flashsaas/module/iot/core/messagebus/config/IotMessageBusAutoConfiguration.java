@@ -31,7 +31,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.conv
 /**
  * IoT 消息总线自动配置
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @AutoConfiguration
 @EnableConfigurationProperties(IotMessageBusProperties.class)

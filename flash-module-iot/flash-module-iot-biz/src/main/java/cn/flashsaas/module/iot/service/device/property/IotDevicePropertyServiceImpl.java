@@ -37,7 +37,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.*;
 /**
  * IoT 设备【属性】数据 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Slf4j

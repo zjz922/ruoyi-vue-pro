@@ -31,7 +31,7 @@ import static cn.flashsaas.module.bpm.enums.ErrorCodeConstants.PROCESS_INSTANCE_
 /**
  * 工作流发起 HTTP 请求工具类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Slf4j
 public class BpmHttpRequestUtils {

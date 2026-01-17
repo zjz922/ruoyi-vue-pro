@@ -30,7 +30,7 @@ import static cn.flashsaas.module.trade.enums.ErrorCodeConstants.PRICE_CALCULATE
 /**
  * 优惠劵的 {@link TradePriceCalculator} 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Component
 @Order(TradePriceCalculator.ORDER_COUPON)

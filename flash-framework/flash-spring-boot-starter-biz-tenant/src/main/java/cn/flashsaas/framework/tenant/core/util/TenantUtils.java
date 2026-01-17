@@ -10,7 +10,7 @@ import static cn.flashsaas.framework.web.core.util.WebFrameworkUtils.HEADER_TENA
 /**
  * 多租户 Util
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public class TenantUtils {
 

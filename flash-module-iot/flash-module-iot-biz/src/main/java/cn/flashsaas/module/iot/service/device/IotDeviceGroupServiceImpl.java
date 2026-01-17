@@ -19,7 +19,7 @@ import static cn.flashsaas.module.iot.enums.ErrorCodeConstants.DEVICE_GROUP_NOT_
 /**
  * IoT 设备分组 Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

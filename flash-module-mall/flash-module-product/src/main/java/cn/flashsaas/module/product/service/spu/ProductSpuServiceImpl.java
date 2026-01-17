@@ -36,7 +36,7 @@ import static cn.flashsaas.module.product.enums.ErrorCodeConstants.*;
 /**
  * 商品 SPU Service 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Service
 @Validated

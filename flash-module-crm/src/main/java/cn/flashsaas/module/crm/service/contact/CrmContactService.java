@@ -19,7 +19,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.conv
 /**
  * CRM 联系人 Service 接口
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public interface CrmContactService {
 

@@ -37,7 +37,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.conv
 /**
  * Flowable 相关的工具方法
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public class FlowableUtils {
 

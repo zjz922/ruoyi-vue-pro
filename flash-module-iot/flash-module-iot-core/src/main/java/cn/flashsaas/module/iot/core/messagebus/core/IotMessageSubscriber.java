@@ -5,7 +5,7 @@ package cn.flashsaas.module.iot.core.messagebus.core;
  *
  * 用于处理从消息总线接收到的消息
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 public interface IotMessageSubscriber<T> {
 

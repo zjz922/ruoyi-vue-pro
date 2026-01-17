@@ -22,7 +22,7 @@ import static cn.flashsaas.framework.mq.redis.config.YudaoRedisMQConsumerAutoCon
 /**
  * Redis 的 {@link IotMessageBus} 实现类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Slf4j
 public class IotRedisMessageBus implements IotMessageBus {

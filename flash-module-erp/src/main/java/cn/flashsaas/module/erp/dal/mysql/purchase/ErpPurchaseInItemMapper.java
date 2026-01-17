@@ -17,7 +17,7 @@ import static cn.flashsaas.framework.common.util.collection.CollectionUtils.conv
 /**
  * ERP 采购入库项 Mapper
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Mapper
 public interface ErpPurchaseInItemMapper extends BaseMapperX<ErpPurchaseInItemDO> {

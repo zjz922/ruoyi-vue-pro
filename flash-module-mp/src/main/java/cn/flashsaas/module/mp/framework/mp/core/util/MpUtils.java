@@ -10,7 +10,7 @@ import javax.validation.Validator;
 /**
  * 公众号工具类
  *
- * @author 芋道源码
+ * @author FlashSaaS
  */
 @Slf4j
 public class MpUtils {
